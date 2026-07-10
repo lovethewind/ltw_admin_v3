@@ -1,0 +1,112 @@
+.admin-filter-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.admin-filter-fields {
+  flex: 1 1 560px;
+  min-width: 0;
+}
+
+.admin-filter-actions {
+  display: flex;
+  flex: 0 0 auto;
+  gap: 8px;
+  align-items: center;
+}
+
+.admin-filter-fields :is(.n-input, .n-base-selection) {
+  flex-shrink: 0;
+}
+
+.w-\[120px\] {
+  width: 120px !important;
+}
+
+.w-\[130px\] {
+  width: 130px !important;
+}
+
+.w-\[150px\] {
+  width: 150px !important;
+}
+
+.w-\[160px\] {
+  width: 160px !important;
+}
+
+.w-\[170px\] {
+  width: 170px !important;
+}
+
+.w-\[180px\] {
+  width: 180px !important;
+}
+
+.w-\[200px\] {
+  width: 200px !important;
+}
+
+.w-\[220px\] {
+  width: 220px !important;
+}
+
+.w-\[240px\] {
+  width: 240px !important;
+}
+
+.w-\[260px\] {
+  width: 260px !important;
+}
+
+.w-\[520px\] {
+  width: 520px !important;
+}
+
+.w-\[560px\] {
+  width: 560px !important;
+}
+
+.w-\[620px\] {
+  width: 620px !important;
+}
+
+.w-\[640px\] {
+  width: 640px !important;
+}
+
+.w-\[680px\] {
+  width: 680px !important;
+}
+
+.w-\[720px\] {
+  width: 720px !important;
+}
+
+.w-\[760px\] {
+  width: 760px !important;
+}
+
+.w-\[860px\] {
+  width: 860px !important;
+}
+
+.admin-image-cell {
+  display: inline-flex;
+  width: 72px !important;
+  height: 44px !important;
+  overflow: hidden;
+  background: hsl(var(--muted));
+  border: 1px solid hsl(var(--border));
+  border-radius: 6px;
+}
+
+.admin-image-cell img {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover;
+}
