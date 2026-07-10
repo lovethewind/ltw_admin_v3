@@ -51,7 +51,6 @@ vite.config.ts.*
 *.sw?
 .history
 .cursor
-scripts
 
 # AI
 AGENTS.md
