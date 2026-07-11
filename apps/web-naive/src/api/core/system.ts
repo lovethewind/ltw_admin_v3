@@ -347,47 +347,47 @@ export type AdminConfigPayload = Omit<
 >;
 
 export async function getAdminMenuTreeApi(activeOnly = false) {
-  return requestClient.get<AdminMenu[]>('/admin/menu/tree', {
+  return requestClient.get<AdminMenu[]>('/menu/tree', {
     params: { activeOnly },
   });
 }
 
 export async function createAdminMenuApi(data: AdminMenuPayload) {
-  return requestClient.post<AdminMenu>('/admin/menu/', data);
+  return requestClient.post<AdminMenu>('/menu/', data);
 }
 
 export async function updateAdminMenuApi(
   menuId: number | string,
   data: Partial<AdminMenuPayload>,
 ) {
-  return requestClient.put<AdminMenu>(`/admin/menu/${menuId}`, data);
+  return requestClient.put<AdminMenu>(`/menu/${menuId}`, data);
 }
 
 export async function deleteAdminMenuApi(menuId: number | string) {
-  return requestClient.delete(`/admin/menu/${menuId}`);
+  return requestClient.delete(`/menu/${menuId}`);
 }
 
 export async function getAdminRoleListApi() {
-  return requestClient.get<AdminRole[]>('/admin/menu/role/list');
+  return requestClient.get<AdminRole[]>('/menu/role/list');
 }
 
 export async function createAdminRoleApi(data: AdminRolePayload) {
-  return requestClient.post<AdminRole>('/admin/menu/role', data);
+  return requestClient.post<AdminRole>('/menu/role', data);
 }
 
 export async function updateAdminRoleApi(
   roleId: number | string,
   data: Partial<AdminRolePayload>,
 ) {
-  return requestClient.put<AdminRole>(`/admin/menu/role/${roleId}`, data);
+  return requestClient.put<AdminRole>(`/menu/role/${roleId}`, data);
 }
 
 export async function deleteAdminRoleApi(roleId: number | string) {
-  return requestClient.delete(`/admin/menu/role/${roleId}`);
+  return requestClient.delete(`/menu/role/${roleId}`);
 }
 
 export async function getAdminRoleMenuIdsApi(roleId: number | string) {
-  return requestClient.get<SnowflakeId[]>(`/admin/menu/role/${roleId}/menus`);
+  return requestClient.get<SnowflakeId[]>(`/menu/role/${roleId}/menus`);
 }
 
 export function toAdminRoleMenuPayload(menuIds: SnowflakeId[]) {
@@ -401,7 +401,7 @@ export async function updateAdminRoleMenusApi(
   menuIds: SnowflakeId[],
 ) {
   return requestClient.put(
-    `/admin/menu/role/${roleId}/menus`,
+    `/menu/role/${roleId}/menus`,
     toAdminRoleMenuPayload(menuIds),
   );
 }
@@ -411,30 +411,30 @@ export async function getAdminUserPageApi(params: {
   keyword?: string;
   size: number;
 }) {
-  return requestClient.get<AdminUserPage>('/admin/user/list', { params });
+  return requestClient.get<AdminUserPage>('/user/list', { params });
 }
 
 export async function getAdminUserApi(userId: number | string) {
-  return requestClient.get<AdminUser>(`/admin/user/${userId}`);
+  return requestClient.get<AdminUser>(`/user/${userId}`);
 }
 
 export async function createAdminUserApi(data: AdminUserPayload) {
-  return requestClient.post<AdminUser>('/admin/user/', data);
+  return requestClient.post<AdminUser>('/user/', data);
 }
 
 export async function updateAdminUserApi(
   userId: number | string,
   data: AdminUserPayload,
 ) {
-  return requestClient.put<AdminUser>(`/admin/user/${userId}`, data);
+  return requestClient.put<AdminUser>(`/user/${userId}`, data);
 }
 
 export async function deleteAdminUserApi(userId: number | string) {
-  return requestClient.delete(`/admin/user/${userId}`);
+  return requestClient.delete(`/user/${userId}`);
 }
 
 export async function getAdminUserRoleIdsApi(userId: number | string) {
-  return requestClient.get<SnowflakeId[]>(`/admin/user/${userId}/roles`);
+  return requestClient.get<SnowflakeId[]>(`/user/${userId}/roles`);
 }
 
 export async function updateAdminUserRolesApi(
@@ -442,7 +442,7 @@ export async function updateAdminUserRolesApi(
   roleIds: SnowflakeId[],
 ) {
   return requestClient.put(
-    `/admin/user/${userId}/roles`,
+    `/user/${userId}/roles`,
     toAdminUserRolePayload(roleIds),
   );
 }
@@ -457,17 +457,17 @@ export async function getAdminUploadSignatureApi(
   data: AdminUploadSignaturePayload,
 ) {
   return requestClient.post<AdminUploadSignature>(
-    '/admin/common/upload/signature',
+    '/common/upload/signature',
     data,
   );
 }
 
 export async function getAdminCategoryListApi() {
-  return requestClient.get<AdminCategory[]>('/admin/content/category/list');
+  return requestClient.get<AdminCategory[]>('/content/category/list');
 }
 
 export async function createAdminCategoryApi(data: AdminCategoryPayload) {
-  return requestClient.post<AdminCategory>('/admin/content/category', data);
+  return requestClient.post<AdminCategory>('/content/category', data);
 }
 
 export async function updateAdminCategoryApi(
@@ -475,34 +475,34 @@ export async function updateAdminCategoryApi(
   data: Partial<AdminCategoryPayload>,
 ) {
   return requestClient.put<AdminCategory>(
-    `/admin/content/category/${categoryId}`,
+    `/content/category/${categoryId}`,
     data,
   );
 }
 
 export async function deleteAdminCategoryApi(categoryId: number | string) {
-  return requestClient.delete(`/admin/content/category/${categoryId}`);
+  return requestClient.delete(`/content/category/${categoryId}`);
 }
 
 export async function getAdminTagTreeApi(activeOnly = false) {
-  return requestClient.get<AdminTag[]>('/admin/content/tag/tree', {
+  return requestClient.get<AdminTag[]>('/content/tag/tree', {
     params: { activeOnly },
   });
 }
 
 export async function createAdminTagApi(data: AdminTagPayload) {
-  return requestClient.post<AdminTag>('/admin/content/tag', data);
+  return requestClient.post<AdminTag>('/content/tag', data);
 }
 
 export async function updateAdminTagApi(
   tagId: number | string,
   data: Partial<AdminTagPayload>,
 ) {
-  return requestClient.put<AdminTag>(`/admin/content/tag/${tagId}`, data);
+  return requestClient.put<AdminTag>(`/content/tag/${tagId}`, data);
 }
 
 export async function deleteAdminTagApi(tagId: number | string) {
-  return requestClient.delete(`/admin/content/tag/${tagId}`);
+  return requestClient.delete(`/content/tag/${tagId}`);
 }
 
 export async function getAdminArticlePageApi(params: {
@@ -514,17 +514,17 @@ export async function getAdminArticlePageApi(params: {
   status?: null | number;
   userId?: null | number | string;
 }) {
-  return requestClient.get<AdminArticlePage>('/admin/content/article/list', {
+  return requestClient.get<AdminArticlePage>('/content/article/list', {
     params,
   });
 }
 
 export async function getAdminArticleApi(articleId: number | string) {
-  return requestClient.get<AdminArticle>(`/admin/content/article/${articleId}`);
+  return requestClient.get<AdminArticle>(`/content/article/${articleId}`);
 }
 
 export async function createAdminArticleApi(data: AdminArticlePayload) {
-  return requestClient.post<AdminArticle>('/admin/content/article', data);
+  return requestClient.post<AdminArticle>('/content/article', data);
 }
 
 export async function updateAdminArticleApi(
@@ -532,7 +532,7 @@ export async function updateAdminArticleApi(
   data: AdminArticlePayload,
 ) {
   return requestClient.put<AdminArticle>(
-    `/admin/content/article/${articleId}`,
+    `/content/article/${articleId}`,
     data,
   );
 }
@@ -542,13 +542,13 @@ export async function updateAdminArticleStatusApi(
   status: number,
 ) {
   return requestClient.put<AdminArticle>(
-    `/admin/content/article/${articleId}/status`,
+    `/content/article/${articleId}/status`,
     { status },
   );
 }
 
 export async function deleteAdminArticleApi(articleId: number | string) {
-  return requestClient.delete(`/admin/content/article/${articleId}`);
+  return requestClient.delete(`/content/article/${articleId}`);
 }
 
 export async function getAdminCommentPageApi(params: {
@@ -560,13 +560,13 @@ export async function getAdminCommentPageApi(params: {
   status?: null | number;
   userId?: null | number | string;
 }) {
-  return requestClient.get<AdminCommentPage>('/admin/content/comment/list', {
+  return requestClient.get<AdminCommentPage>('/content/comment/list', {
     params,
   });
 }
 
 export async function getAdminCommentApi(commentId: number | string) {
-  return requestClient.get<AdminComment>(`/admin/content/comment/${commentId}`);
+  return requestClient.get<AdminComment>(`/content/comment/${commentId}`);
 }
 
 export async function updateAdminCommentApi(
@@ -574,7 +574,7 @@ export async function updateAdminCommentApi(
   data: AdminCommentPayload,
 ) {
   return requestClient.put<AdminComment>(
-    `/admin/content/comment/${commentId}`,
+    `/content/comment/${commentId}`,
     data,
   );
 }
@@ -584,13 +584,13 @@ export async function updateAdminCommentStatusApi(
   status: number,
 ) {
   return requestClient.put<AdminComment>(
-    `/admin/content/comment/${commentId}/status`,
+    `/content/comment/${commentId}/status`,
     { status },
   );
 }
 
 export async function deleteAdminCommentApi(commentId: number | string) {
-  return requestClient.delete(`/admin/content/comment/${commentId}`);
+  return requestClient.delete(`/content/comment/${commentId}`);
 }
 
 export async function getAdminMessagePageApi(params: {
@@ -600,13 +600,13 @@ export async function getAdminMessagePageApi(params: {
   size: number;
   userId?: null | number | string;
 }) {
-  return requestClient.get<AdminMessagePage>('/admin/content/message/list', {
+  return requestClient.get<AdminMessagePage>('/content/message/list', {
     params,
   });
 }
 
 export async function getAdminMessageApi(messageId: number | string) {
-  return requestClient.get<AdminMessage>(`/admin/content/message/${messageId}`);
+  return requestClient.get<AdminMessage>(`/content/message/${messageId}`);
 }
 
 export async function updateAdminMessageApi(
@@ -614,13 +614,13 @@ export async function updateAdminMessageApi(
   data: AdminMessagePayload,
 ) {
   return requestClient.put<AdminMessage>(
-    `/admin/content/message/${messageId}`,
+    `/content/message/${messageId}`,
     data,
   );
 }
 
 export async function deleteAdminMessageApi(messageId: number | string) {
-  return requestClient.delete(`/admin/content/message/${messageId}`);
+  return requestClient.delete(`/content/message/${messageId}`);
 }
 
 export async function getAdminPictureAlbumPageApi(params: {
@@ -632,14 +632,14 @@ export async function getAdminPictureAlbumPageApi(params: {
   userId?: null | SnowflakeId;
 }) {
   return requestClient.get<AdminPictureAlbumPage>(
-    '/admin/content/picture/album/list',
+    '/content/picture/album/list',
     { params },
   );
 }
 
 export async function getAdminPictureAlbumApi(albumId: SnowflakeId) {
   return requestClient.get<AdminPictureAlbum>(
-    `/admin/content/picture/album/${albumId}`,
+    `/content/picture/album/${albumId}`,
   );
 }
 
@@ -647,7 +647,7 @@ export async function createAdminPictureAlbumApi(
   data: AdminPictureAlbumPayload,
 ) {
   return requestClient.post<AdminPictureAlbum>(
-    '/admin/content/picture/album',
+    '/content/picture/album',
     data,
   );
 }
@@ -657,7 +657,7 @@ export async function updateAdminPictureAlbumApi(
   data: AdminPictureAlbumPayload,
 ) {
   return requestClient.put<AdminPictureAlbum>(
-    `/admin/content/picture/album/${albumId}`,
+    `/content/picture/album/${albumId}`,
     data,
   );
 }
@@ -667,13 +667,13 @@ export async function updateAdminPictureAlbumStatusApi(
   status: number,
 ) {
   return requestClient.put<AdminPictureAlbum>(
-    `/admin/content/picture/album/${albumId}/status`,
+    `/content/picture/album/${albumId}/status`,
     { status },
   );
 }
 
 export async function deleteAdminPictureAlbumApi(albumId: SnowflakeId) {
-  return requestClient.delete(`/admin/content/picture/album/${albumId}`);
+  return requestClient.delete(`/content/picture/album/${albumId}`);
 }
 
 export async function getAdminPicturePageApi(params: {
@@ -684,17 +684,17 @@ export async function getAdminPicturePageApi(params: {
   status?: null | number;
   userId?: null | SnowflakeId;
 }) {
-  return requestClient.get<AdminPicturePage>('/admin/content/picture/list', {
+  return requestClient.get<AdminPicturePage>('/content/picture/list', {
     params,
   });
 }
 
 export async function getAdminPictureApi(pictureId: SnowflakeId) {
-  return requestClient.get<AdminPicture>(`/admin/content/picture/${pictureId}`);
+  return requestClient.get<AdminPicture>(`/content/picture/${pictureId}`);
 }
 
 export async function createAdminPictureApi(data: AdminPicturePayload) {
-  return requestClient.post<AdminPicture>('/admin/content/picture', data);
+  return requestClient.post<AdminPicture>('/content/picture', data);
 }
 
 export async function updateAdminPictureApi(
@@ -702,7 +702,7 @@ export async function updateAdminPictureApi(
   data: AdminPicturePayload,
 ) {
   return requestClient.put<AdminPicture>(
-    `/admin/content/picture/${pictureId}`,
+    `/content/picture/${pictureId}`,
     data,
   );
 }
@@ -712,13 +712,13 @@ export async function updateAdminPictureStatusApi(
   status: number,
 ) {
   return requestClient.put<AdminPicture>(
-    `/admin/content/picture/${pictureId}/status`,
+    `/content/picture/${pictureId}/status`,
     { status },
   );
 }
 
 export async function deleteAdminPictureApi(pictureId: SnowflakeId) {
-  return requestClient.delete(`/admin/content/picture/${pictureId}`);
+  return requestClient.delete(`/content/picture/${pictureId}`);
 }
 
 export async function getAdminLinkPageApi(params: {
@@ -727,42 +727,42 @@ export async function getAdminLinkPageApi(params: {
   size: number;
   status?: null | number;
 }) {
-  return requestClient.get<AdminLinkPage>('/admin/content/link/list', {
+  return requestClient.get<AdminLinkPage>('/content/link/list', {
     params,
   });
 }
 
 export async function getAdminLinkApi(linkId: SnowflakeId) {
-  return requestClient.get<AdminLink>(`/admin/content/link/${linkId}`);
+  return requestClient.get<AdminLink>(`/content/link/${linkId}`);
 }
 
 export async function createAdminLinkApi(data: AdminLinkPayload) {
-  return requestClient.post<AdminLink>('/admin/content/link', data);
+  return requestClient.post<AdminLink>('/content/link', data);
 }
 
 export async function updateAdminLinkApi(
   linkId: SnowflakeId,
   data: AdminLinkPayload,
 ) {
-  return requestClient.put<AdminLink>(`/admin/content/link/${linkId}`, data);
+  return requestClient.put<AdminLink>(`/content/link/${linkId}`, data);
 }
 
 export async function updateAdminLinkStatusApi(
   linkId: SnowflakeId,
   status: number,
 ) {
-  return requestClient.put<AdminLink>(`/admin/content/link/${linkId}/status`, {
+  return requestClient.put<AdminLink>(`/content/link/${linkId}/status`, {
     status,
   });
 }
 
 export async function deleteAdminLinkApi(linkId: SnowflakeId) {
-  return requestClient.delete(`/admin/content/link/${linkId}`);
+  return requestClient.delete(`/content/link/${linkId}`);
 }
 
 export async function getAdminWebsiteCategoryListApi() {
   return requestClient.get<AdminWebsiteCategory[]>(
-    '/admin/content/website/category/list',
+    '/content/website/category/list',
   );
 }
 
@@ -770,7 +770,7 @@ export async function createAdminWebsiteCategoryApi(
   data: AdminWebsiteCategoryPayload,
 ) {
   return requestClient.post<AdminWebsiteCategory>(
-    '/admin/content/website/category',
+    '/content/website/category',
     data,
   );
 }
@@ -780,13 +780,13 @@ export async function updateAdminWebsiteCategoryApi(
   data: Partial<AdminWebsiteCategoryPayload>,
 ) {
   return requestClient.put<AdminWebsiteCategory>(
-    `/admin/content/website/category/${categoryId}`,
+    `/content/website/category/${categoryId}`,
     data,
   );
 }
 
 export async function deleteAdminWebsiteCategoryApi(categoryId: SnowflakeId) {
-  return requestClient.delete(`/admin/content/website/category/${categoryId}`);
+  return requestClient.delete(`/content/website/category/${categoryId}`);
 }
 
 export async function getAdminWebsitePageApi(params: {
@@ -797,17 +797,17 @@ export async function getAdminWebsitePageApi(params: {
   status?: null | number;
   userId?: null | SnowflakeId;
 }) {
-  return requestClient.get<AdminWebsitePage>('/admin/content/website/list', {
+  return requestClient.get<AdminWebsitePage>('/content/website/list', {
     params,
   });
 }
 
 export async function getAdminWebsiteApi(websiteId: SnowflakeId) {
-  return requestClient.get<AdminWebsite>(`/admin/content/website/${websiteId}`);
+  return requestClient.get<AdminWebsite>(`/content/website/${websiteId}`);
 }
 
 export async function createAdminWebsiteApi(data: AdminWebsitePayload) {
-  return requestClient.post<AdminWebsite>('/admin/content/website', data);
+  return requestClient.post<AdminWebsite>('/content/website', data);
 }
 
 export async function updateAdminWebsiteApi(
@@ -815,7 +815,7 @@ export async function updateAdminWebsiteApi(
   data: AdminWebsitePayload,
 ) {
   return requestClient.put<AdminWebsite>(
-    `/admin/content/website/${websiteId}`,
+    `/content/website/${websiteId}`,
     data,
   );
 }
@@ -825,13 +825,13 @@ export async function updateAdminWebsiteStatusApi(
   status: number,
 ) {
   return requestClient.put<AdminWebsite>(
-    `/admin/content/website/${websiteId}/status`,
+    `/content/website/${websiteId}/status`,
     { status },
   );
 }
 
 export async function deleteAdminWebsiteApi(websiteId: SnowflakeId) {
-  return requestClient.delete(`/admin/content/website/${websiteId}`);
+  return requestClient.delete(`/content/website/${websiteId}`);
 }
 
 export async function getAdminConfigPageApi(params: {
@@ -840,17 +840,17 @@ export async function getAdminConfigPageApi(params: {
   keyword?: string;
   size: number;
 }) {
-  return requestClient.get<AdminConfigPage>('/admin/content/config/list', {
+  return requestClient.get<AdminConfigPage>('/content/config/list', {
     params,
   });
 }
 
 export async function getAdminConfigApi(configId: SnowflakeId) {
-  return requestClient.get<AdminConfig>(`/admin/content/config/${configId}`);
+  return requestClient.get<AdminConfig>(`/content/config/${configId}`);
 }
 
 export async function createAdminConfigApi(data: AdminConfigPayload) {
-  return requestClient.post<AdminConfig>('/admin/content/config', data);
+  return requestClient.post<AdminConfig>('/content/config', data);
 }
 
 export async function updateAdminConfigApi(
@@ -858,13 +858,13 @@ export async function updateAdminConfigApi(
   data: Partial<AdminConfigPayload>,
 ) {
   return requestClient.put<AdminConfig>(
-    `/admin/content/config/${configId}`,
+    `/content/config/${configId}`,
     data,
   );
 }
 
 export async function deleteAdminConfigApi(configId: SnowflakeId) {
-  return requestClient.delete(`/admin/content/config/${configId}`);
+  return requestClient.delete(`/content/config/${configId}`);
 }
 
 export interface AdminJob {
@@ -962,32 +962,32 @@ export async function getAdminJobPageApi(params: {
   size: number;
   status?: null | number;
 }) {
-  return requestClient.get<AdminJobPage>('/admin/operation/job/list', {
+  return requestClient.get<AdminJobPage>('/operation/job/list', {
     params,
   });
 }
 export async function getAdminJobApi(jobId: SnowflakeId) {
-  return requestClient.get<AdminJob>(`/admin/operation/job/${jobId}`);
+  return requestClient.get<AdminJob>(`/operation/job/${jobId}`);
 }
 export async function createAdminJobApi(data: AdminJobPayload) {
-  return requestClient.post<AdminJob>('/admin/operation/job', data);
+  return requestClient.post<AdminJob>('/operation/job', data);
 }
 export async function updateAdminJobApi(
   jobId: SnowflakeId,
   data: AdminJobPayload,
 ) {
-  return requestClient.put<AdminJob>(`/admin/operation/job/${jobId}`, data);
+  return requestClient.put<AdminJob>(`/operation/job/${jobId}`, data);
 }
 export async function updateAdminJobStatusApi(
   jobId: SnowflakeId,
   status: number,
 ) {
-  return requestClient.put<AdminJob>(`/admin/operation/job/${jobId}/status`, {
+  return requestClient.put<AdminJob>(`/operation/job/${jobId}/status`, {
     status,
   });
 }
 export async function deleteAdminJobApi(jobId: SnowflakeId) {
-  return requestClient.delete(`/admin/operation/job/${jobId}`);
+  return requestClient.delete(`/operation/job/${jobId}`);
 }
 export async function getAdminSourcePageApi(params: {
   current: number;
@@ -996,7 +996,7 @@ export async function getAdminSourcePageApi(params: {
   size: number;
   userId?: null | SnowflakeId;
 }) {
-  return requestClient.get<AdminSourcePage>('/admin/operation/source/list', {
+  return requestClient.get<AdminSourcePage>('/operation/source/list', {
     params,
   });
 }
@@ -1005,12 +1005,12 @@ export async function updateAdminSourceApi(
   data: AdminSourcePayload,
 ) {
   return requestClient.put<AdminSource>(
-    `/admin/operation/source/${sourceId}`,
+    `/operation/source/${sourceId}`,
     data,
   );
 }
 export async function deleteAdminSourceApi(sourceId: SnowflakeId) {
-  return requestClient.delete(`/admin/operation/source/${sourceId}`);
+  return requestClient.delete(`/operation/source/${sourceId}`);
 }
 export async function getAdminNoticePageApi(params: {
   current: number;
@@ -1020,24 +1020,24 @@ export async function getAdminNoticePageApi(params: {
   size: number;
   userId?: null | SnowflakeId;
 }) {
-  return requestClient.get<AdminNoticePage>('/admin/operation/notice/list', {
+  return requestClient.get<AdminNoticePage>('/operation/notice/list', {
     params,
   });
 }
 export async function getAdminNoticeApi(noticeId: SnowflakeId) {
-  return requestClient.get<AdminNotice>(`/admin/operation/notice/${noticeId}`);
+  return requestClient.get<AdminNotice>(`/operation/notice/${noticeId}`);
 }
 export async function updateAdminNoticeApi(
   noticeId: SnowflakeId,
   data: AdminNoticePayload,
 ) {
   return requestClient.put<AdminNotice>(
-    `/admin/operation/notice/${noticeId}`,
+    `/operation/notice/${noticeId}`,
     data,
   );
 }
 export async function deleteAdminNoticeApi(noticeId: SnowflakeId) {
-  return requestClient.delete(`/admin/operation/notice/${noticeId}`);
+  return requestClient.delete(`/operation/notice/${noticeId}`);
 }
 export async function getAdminUserRestrictionPageApi(params: {
   current: number;
@@ -1047,7 +1047,7 @@ export async function getAdminUserRestrictionPageApi(params: {
   userId?: null | SnowflakeId;
 }) {
   return requestClient.get<AdminUserRestrictionPage>(
-    '/admin/operation/restriction/list',
+    '/operation/restriction/list',
     { params },
   );
 }
@@ -1055,7 +1055,7 @@ export async function createAdminUserRestrictionApi(
   data: AdminUserRestrictionPayload,
 ) {
   return requestClient.post<AdminUserRestriction>(
-    '/admin/operation/restriction',
+    '/operation/restriction',
     data,
   );
 }
@@ -1064,7 +1064,7 @@ export async function updateAdminUserRestrictionApi(
   data: AdminUserRestrictionPayload,
 ) {
   return requestClient.put<AdminUserRestriction>(
-    `/admin/operation/restriction/${restrictionId}`,
+    `/operation/restriction/${restrictionId}`,
     data,
   );
 }
@@ -1073,12 +1073,12 @@ export async function cancelAdminUserRestrictionApi(
   cancelReason?: string,
 ) {
   return requestClient.put<AdminUserRestriction>(
-    `/admin/operation/restriction/${restrictionId}/cancel`,
+    `/operation/restriction/${restrictionId}/cancel`,
     { cancelReason },
   );
 }
 export async function deleteAdminUserRestrictionApi(
   restrictionId: SnowflakeId,
 ) {
-  return requestClient.delete(`/admin/operation/restriction/${restrictionId}`);
+  return requestClient.delete(`/operation/restriction/${restrictionId}`);
 }

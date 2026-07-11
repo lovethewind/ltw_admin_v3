@@ -9,6 +9,6 @@ import { normalizeBackendMenus } from './menu-adapter';
  */
 export async function getAllMenusApi() {
   const menus =
-    await requestClient.get<RouteRecordStringComponent[]>('/admin/user/menus');
+    await requestClient.get<RouteRecordStringComponent[]>('/user/menus');
   return normalizeBackendMenus(menus);
 }
