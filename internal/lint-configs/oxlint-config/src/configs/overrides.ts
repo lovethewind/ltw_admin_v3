@@ -19,7 +19,7 @@ const overrides: OxlintConfig = {
       },
     },
     {
-      files: ['apps/web-naive/**/*.vue'],
+      files: ['src/**/*.vue'],
       rules: {
         'no-alert': 'off',
       },

@@ -12,7 +12,7 @@ const customConfig: Linter.Config[] = [
   },
   {
     files: [
-      'apps/**/**',
+      'src/**/**',
       'packages/effects/**/**',
       'packages/utils/**/**',
       'packages/types/**/**',
@@ -25,7 +25,7 @@ const customConfig: Linter.Config[] = [
   },
   {
     // apps内部的一些基础规则
-    files: ['apps/**/**'],
+    files: ['src/**/**'],
     ignores: restrictedImportIgnores,
     rules: {
       'no-restricted-imports': [
