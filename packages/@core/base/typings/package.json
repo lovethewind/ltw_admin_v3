@@ -40,7 +40,6 @@
     }
   },
   "dependencies": {
-    "vue": "catalog:",
-    "vue-router": "catalog:"
+    "vue": "catalog:"
   }
 }

@@ -21,7 +21,6 @@
   },
   "dependencies": {
     "@vben-core/shared": "workspace:*",
-    "@vben-core/typings": "workspace:*",
-    "vue-router": "catalog:"
+    "@vben-core/typings": "workspace:*"
   }
 }

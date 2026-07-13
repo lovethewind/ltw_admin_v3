@@ -27,7 +27,6 @@
     "@vben/utils": "workspace:*",
     "@vueuse/core": "catalog:",
     "vue": "catalog:",
-    "vue-router": "catalog:",
     "watermark-js-plus": "catalog:"
   }
 }
