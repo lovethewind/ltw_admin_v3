@@ -1,65 +1,30 @@
 <script setup lang="ts">
-import type { BasicOption } from '@vben/types';
+import { useUserStore } from '@vben/stores';
 
-import type { VbenFormSchema } from '#/adapter/form';
+import { NDescriptions, NDescriptionsItem } from 'naive-ui';
 
-import { computed, onMounted, ref } from 'vue';
-
-import { ProfileBaseSetting } from '@vben/common-ui';
-
-import { getUserInfoApi } from '#/api';
-
-const profileBaseSettingRef = ref();
-
-const MOCK_ROLES_OPTIONS: BasicOption[] = [
-  {
-    label: '管理员',
-    value: 'super',
-  },
-  {
-    label: '用户',
-    value: 'user',
-  },
-  {
-    label: '测试',
-    value: 'test',
-  },
-];
-
-const formSchema = computed((): VbenFormSchema[] => {
-  return [
-    {
-      fieldName: 'realName',
-      component: 'Input',
-      label: '姓名',
-    },
-    {
-      fieldName: 'username',
-      component: 'Input',
-      label: '用户名',
-    },
-    {
-      fieldName: 'roles',
-      component: 'Select',
-      componentProps: {
-        mode: 'tags',
-        options: MOCK_ROLES_OPTIONS,
-      },
-      label: '角色',
-    },
-    {
-      fieldName: 'introduction',
-      component: 'Textarea',
-      label: '个人简介',
-    },
-  ];
-});
-
-onMounted(async () => {
-  const data = await getUserInfoApi();
-  profileBaseSettingRef.value.getFormApi().setValues(data);
-});
+const userStore = useUserStore();
 </script>
+
 <template>
-  <ProfileBaseSetting ref="profileBaseSettingRef" :form-schema="formSchema" />
+  <NDescriptions :column="1" bordered label-placement="left">
+    <NDescriptionsItem label="UID">
+      {{ userStore.userInfo?.uid || '-' }}
+    </NDescriptionsItem>
+    <NDescriptionsItem label="用户名">
+      {{ userStore.userInfo?.username || '-' }}
+    </NDescriptionsItem>
+    <NDescriptionsItem label="昵称">
+      {{ userStore.userInfo?.nickname || '-' }}
+    </NDescriptionsItem>
+    <NDescriptionsItem label="邮箱">
+      {{ userStore.userInfo?.email || '-' }}
+    </NDescriptionsItem>
+    <NDescriptionsItem label="手机号">
+      {{ userStore.userInfo?.mobile || '-' }}
+    </NDescriptionsItem>
+    <NDescriptionsItem label="角色">
+      {{ userStore.userInfo?.roles?.join('、') || '-' }}
+    </NDescriptionsItem>
+  </NDescriptions>
 </template>

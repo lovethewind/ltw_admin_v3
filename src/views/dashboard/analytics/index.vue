@@ -1,12 +1,13 @@
 <script lang="ts" setup>
-import type { AnalysisOverviewItem } from '@vben/common-ui';
-import type { TabOption } from '@vben/types';
+import type { DataTableColumns } from 'naive-ui';
 
-import {
-  AnalysisChartCard,
-  AnalysisChartsTabs,
-  AnalysisOverview,
-} from '@vben/common-ui';
+import type { AnalysisOverviewItem } from '@vben/common-ui';
+
+import type { AnalyticsData, AnalyticsHotArticle } from '#/api';
+
+import { computed, onMounted, ref } from 'vue';
+
+import { AnalysisChartCard, AnalysisOverview } from '@vben/common-ui';
 import {
   SvgBellIcon,
   SvgCakeIcon,
@@ -14,77 +15,135 @@ import {
   SvgDownloadIcon,
 } from '@vben/icons';
 
+import { NDataTable, NSpin } from 'naive-ui';
+
+import { getAnalyticsApi } from '#/api';
+
+import AnalyticsCategoryDistribution from './analytics-category-distribution.vue';
+import AnalyticsContentStatus from './analytics-content-status.vue';
 import AnalyticsTrends from './analytics-trends.vue';
-import AnalyticsVisitsData from './analytics-visits-data.vue';
-import AnalyticsVisitsSales from './analytics-visits-sales.vue';
-import AnalyticsVisitsSource from './analytics-visits-source.vue';
-import AnalyticsVisits from './analytics-visits.vue';
 
-const overviewItems: AnalysisOverviewItem[] = [
+const loading = ref(false);
+const analytics = ref<AnalyticsData>();
+
+const overviewItems = computed<AnalysisOverviewItem[]>(() => {
+  const overview = analytics.value?.overview;
+  return [
+    {
+      icon: SvgCardIcon,
+      title: '今日新增用户',
+      totalTitle: '用户总数',
+      totalValue: overview?.totalUsers ?? 0,
+      value: overview?.todayUsers ?? 0,
+    },
+    {
+      icon: SvgCakeIcon,
+      title: '待审核文章',
+      totalTitle: '已发布文章',
+      totalValue: overview?.publishedArticles ?? 0,
+      value: overview?.pendingArticles ?? 0,
+    },
+    {
+      icon: SvgBellIcon,
+      title: '待审核评论',
+      totalTitle: '评论总数',
+      totalValue: overview?.totalComments ?? 0,
+      value: overview?.pendingComments ?? 0,
+    },
+    {
+      icon: SvgDownloadIcon,
+      title: '累计访问量',
+      totalTitle: '累计互动量',
+      totalValue: overview?.totalInteractions ?? 0,
+      value: overview?.totalViews ?? 0,
+    },
+  ];
+});
+
+const hotArticleColumns: DataTableColumns<AnalyticsHotArticle> = [
   {
-    icon: SvgCardIcon,
-    title: '用户量',
-    totalTitle: '总用户量',
-    totalValue: 120_000,
-    value: 2000,
+    ellipsis: { tooltip: true },
+    key: 'title',
+    minWidth: 220,
+    title: '文章标题',
   },
-  {
-    icon: SvgCakeIcon,
-    title: '访问量',
-    totalTitle: '总访问量',
-    totalValue: 500_000,
-    value: 20_000,
-  },
-  {
-    icon: SvgDownloadIcon,
-    title: '下载量',
-    totalTitle: '总下载量',
-    totalValue: 120_000,
-    value: 8000,
-  },
-  {
-    icon: SvgBellIcon,
-    title: '使用量',
-    totalTitle: '总使用量',
-    totalValue: 50_000,
-    value: 5000,
-  },
+  { key: 'author', minWidth: 120, title: '作者' },
+  { key: 'views', width: 90, title: '访问' },
+  { key: 'likes', width: 90, title: '点赞' },
+  { key: 'collects', width: 90, title: '收藏' },
+  { key: 'comments', width: 90, title: '评论' },
 ];
 
-const chartTabs: TabOption[] = [
-  {
-    label: '流量趋势',
-    value: 'trends',
-  },
-  {
-    label: '月访问量',
-    value: 'visits',
-  },
-];
+const pendingItems = computed(() => {
+  const pending = analytics.value?.pending;
+  return [
+    { label: '待审核文章', value: pending?.articles ?? 0 },
+    { label: '待审核评论', value: pending?.comments ?? 0 },
+    { label: '待审核图片', value: pending?.pictures ?? 0 },
+    { label: '待审核友链', value: pending?.links ?? 0 },
+    { label: '封禁用户', value: pending?.bannedUsers ?? 0 },
+    { label: '禁言用户', value: pending?.mutedUsers ?? 0 },
+  ];
+});
+
+/** 加载后台运营分析数据。 */
+async function loadAnalytics(): Promise<void> {
+  loading.value = true;
+  try {
+    analytics.value = await getAnalyticsApi();
+  } finally {
+    loading.value = false;
+  }
+}
+
+onMounted(loadAnalytics);
 </script>
 
 <template>
-  <div class="p-5">
-    <AnalysisOverview :items="overviewItems" />
-    <AnalysisChartsTabs :tabs="chartTabs" class="mt-5">
-      <template #trends>
-        <AnalyticsTrends />
-      </template>
-      <template #visits>
-        <AnalyticsVisits />
-      </template>
-    </AnalysisChartsTabs>
+  <NSpin :show="loading">
+    <div class="p-5">
+      <AnalysisOverview :items="overviewItems" />
 
-    <div class="mt-5 w-full md:flex">
-      <AnalysisChartCard class="mt-5 md:mt-0 md:mr-4 md:w-1/3" title="访问数量">
-        <AnalyticsVisitsData />
+      <AnalysisChartCard class="mt-5" title="近 30 天增长趋势">
+        <AnalyticsTrends :data="analytics?.trends ?? []" />
       </AnalysisChartCard>
-      <AnalysisChartCard class="mt-5 md:mt-0 md:mr-4 md:w-1/3" title="访问来源">
-        <AnalyticsVisitsSource />
-      </AnalysisChartCard>
-      <AnalysisChartCard class="mt-5 md:mt-0 md:w-1/3" title="访问来源">
-        <AnalyticsVisitsSales />
-      </AnalysisChartCard>
+
+      <div class="mt-5 grid grid-cols-1 gap-5 lg:grid-cols-2">
+        <AnalysisChartCard title="文章状态分布">
+          <AnalyticsContentStatus :data="analytics?.articleStatuses ?? []" />
+        </AnalysisChartCard>
+        <AnalysisChartCard title="文章分类分布">
+          <AnalyticsCategoryDistribution :data="analytics?.categories ?? []" />
+        </AnalysisChartCard>
+      </div>
+
+      <div class="mt-5 grid grid-cols-1 gap-5 xl:grid-cols-3">
+        <AnalysisChartCard class="xl:col-span-2" title="热门文章排行">
+          <NDataTable
+            :columns="hotArticleColumns"
+            :data="analytics?.hotArticles ?? []"
+            :pagination="false"
+            :scroll-x="700"
+          />
+        </AnalysisChartCard>
+
+        <AnalysisChartCard title="待处理事项">
+          <div class="grid grid-cols-2 gap-4">
+            <div
+              v-for="item in pendingItems"
+              :key="item.label"
+              class="rounded-lg border p-4"
+            >
+              <div class="text-sm text-muted-foreground">
+                {{ item.label }}
+              </div>
+              <div class="mt-2 text-2xl font-semibold">
+                {{ item.value.toLocaleString() }}
+              </div>
+            </div>
+          </div>
+        </AnalysisChartCard>
+      </div>
     </div>
-  </div>
+  </NSpin>
 </template>

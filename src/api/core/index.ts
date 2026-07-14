@@ -1,5 +1,6 @@
 export * from './admin-menu';
 export * from './admin-user';
+export * from './analytics';
 export * from './article';
 export * from './auth';
 export * from './category';
