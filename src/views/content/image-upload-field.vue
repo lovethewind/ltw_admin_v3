@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import type { UploadFileInfo } from 'naive-ui';
 
+import type { ImageFileMetadata } from './image-upload';
+
 import { onBeforeUnmount, ref } from 'vue';
 
 import { VCropper } from '@vben/common-ui';
@@ -19,6 +21,7 @@ import { getAdminUploadSignatureApi } from '#/api';
 
 import {
   createCroppedImageFile,
+  getImageFileMetadata,
   uploadImageFile,
   uploadImageToOss,
   validateImageUploadFile,
@@ -55,6 +58,9 @@ const props = withDefaults(
   },
 );
 
+const emit = defineEmits<{
+  uploaded: [metadata: ImageFileMetadata];
+}>();
 const imageUrl = defineModel<string>({ default: '' });
 const message = useMessage();
 const uploading = ref(false);
@@ -92,6 +98,7 @@ function handleBeforeUpload({ file }: { file: { file?: File | null } }): false {
 async function uploadSelectedImage(file: File): Promise<void> {
   uploading.value = true;
   try {
+    const metadata = await getImageFileMetadata(file);
     const nextUrl = await uploadImageFile(file, {
       getSignature: (fileName) =>
         getAdminUploadSignatureApi({ dirType: props.dirType, fileName }),
@@ -100,6 +107,7 @@ async function uploadSelectedImage(file: File): Promise<void> {
       },
     });
     imageUrl.value = nextUrl;
+    emit('uploaded', metadata);
     uploadFileList.value = [];
     message.success('图片已上传');
   } catch (error) {

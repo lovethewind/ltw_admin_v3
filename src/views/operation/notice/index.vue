@@ -3,7 +3,12 @@ import type { DataTableColumns, FormInst, FormRules } from 'naive-ui';
 
 import type { VNodeChild } from 'vue';
 
-import type { AdminNotice, AdminNoticePayload, SnowflakeId } from '#/api';
+import type {
+  AdminNotice,
+  AdminNoticePayload,
+  AdminUser,
+  SnowflakeId,
+} from '#/api';
 
 import { computed, h, onMounted, reactive, ref } from 'vue';
 
@@ -30,10 +35,14 @@ import {
   deleteAdminNoticeApi,
   getAdminNoticeApi,
   getAdminNoticePageApi,
+  getAdminUserPageApi,
   updateAdminNoticeApi,
 } from '#/api';
+import { showDeleteConfirm } from '#/utils/confirm';
 
 import { hasActionPermission } from '../../system/permission-actions';
+import AdminUserDisplay from '../../system/user/user-display.vue';
+import AdminUserSelect from '../../system/user/user-select.vue';
 import {
   booleanNumberOptions,
   getBooleanLabel,
@@ -47,6 +56,7 @@ const modalVisible = ref(false);
 const editingId = ref<AdminNotice['id']>();
 const formRef = ref<FormInst | null>(null);
 const records = ref<AdminNotice[]>([]);
+const users = ref<AdminUser[]>([]);
 const total = ref(0);
 const query = reactive({
   current: 1,
@@ -67,6 +77,18 @@ const rules: FormRules = {
 function canAccess(code: string) {
   return hasActionPermission(accessStore.accessCodes, code);
 }
+
+/**
+ * 渲染通知所属用户。
+ *
+ * :param userId: 用户 ID。
+ * :return: 用户展示节点。
+ */
+function renderUserCell(userId: SnowflakeId): VNodeChild {
+  const user = users.value.find((item) => item.id === userId);
+  return h(AdminUserDisplay, { fallback: userId, user });
+}
+
 const columns = computed<DataTableColumns<AdminNotice>>(() => [
   { key: 'title', title: '标题', width: 180 },
   { key: 'content', title: '内容', width: 260, ellipsis: { tooltip: true } },
@@ -76,7 +98,12 @@ const columns = computed<DataTableColumns<AdminNotice>>(() => [
     width: 100,
     render: (row) => getOptionLabel(noticeTypeOptions, row.noticeType),
   },
-  { key: 'userId', title: '用户 ID', width: 170 },
+  {
+    key: 'userId',
+    render: (row) => renderUserCell(row.userId),
+    title: '用户',
+    width: 220,
+  },
   {
     key: 'isRead',
     title: '已读',
@@ -92,7 +119,7 @@ const columns = computed<DataTableColumns<AdminNotice>>(() => [
         { default: () => getBooleanLabel(row.isRead) },
       ),
   },
-  { key: 'createTime', title: '创建时间', width: 170 },
+  { key: 'createTime', title: '创建时间', width: 200 },
   {
     fixed: 'right',
     key: 'actions',
@@ -122,6 +149,30 @@ const columns = computed<DataTableColumns<AdminNotice>>(() => [
     },
   },
 ]);
+
+/**
+ * 加载通知用户选择项。
+ *
+ * :return: 无返回值。
+ */
+async function loadUsers(): Promise<void> {
+  const size = 200;
+  const userRecords: AdminUser[] = [];
+  let current = 1;
+  let totalUsers: number;
+  try {
+    do {
+      const page = await getAdminUserPageApi({ current, size });
+      userRecords.push(...page.records);
+      totalUsers = page.total;
+      current += 1;
+    } while (userRecords.length < totalUsers);
+    users.value = userRecords;
+  } catch {
+    users.value = [];
+  }
+}
+
 async function loadData() {
   loading.value = true;
   try {
@@ -161,11 +212,18 @@ async function handleSubmit() {
   modalVisible.value = false;
   await loadData();
 }
-async function handleDelete(row: AdminNotice) {
-  if (!window.confirm('确认删除该通知？')) return;
-  await deleteAdminNoticeApi(row.id);
-  message.success('通知已删除');
-  await loadData();
+/**
+ * 确认并删除通知。
+ *
+ * :param row: 通知数据。
+ * :return: 无返回值。
+ */
+function handleDelete(row: AdminNotice): void {
+  showDeleteConfirm('确认删除该通知？', async () => {
+    await deleteAdminNoticeApi(row.id);
+    message.success('通知已删除');
+    await loadData();
+  });
 }
 function handlePageChange(page: number) {
   query.current = page;
@@ -176,7 +234,9 @@ function handlePageSizeChange(size: number) {
   query.current = 1;
   void loadData();
 }
-onMounted(loadData);
+onMounted(() => {
+  void Promise.all([loadUsers(), loadData()]);
+});
 </script>
 <template>
   <Page title="通知管理">
@@ -188,12 +248,11 @@ onMounted(loadData);
           placeholder="通知关键词"
           class="w-[220px]"
           @keyup.enter="handleSearch"
-        /><NInput
+        /><AdminUserSelect
           v-model:value="query.userId"
-          clearable
-          placeholder="用户 ID"
-          class="w-[180px]"
-          @keyup.enter="handleSearch"
+          :users="users"
+          placeholder="用户"
+          class="w-[220px]"
         /><NSelect
           v-model:value="query.noticeType"
           :options="noticeTypeOptions"

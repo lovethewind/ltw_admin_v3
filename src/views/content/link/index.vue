@@ -34,9 +34,10 @@ import {
   updateAdminLinkApi,
   updateAdminLinkStatusApi,
 } from '#/api';
+import { showDeleteConfirm } from '#/utils/confirm';
 
 import { hasActionPermission } from '../../system/permission-actions';
-import { renderImageCell } from '../image-cell';
+import { renderImageCellWithInitialFallback } from '../image-cell';
 import ImageUploadField from '../image-upload-field.vue';
 import {
   checkStatusOptions,
@@ -100,7 +101,8 @@ const columns = computed<DataTableColumns<AdminLink>>(() => [
   { key: 'name', title: '网站名', width: 160 },
   {
     key: 'cover',
-    render: (row) => renderImageCell(row.cover, row.name),
+    render: (row) =>
+      renderImageCellWithInitialFallback(row.cover, row.name),
     title: '封面',
     width: 100,
   },
@@ -128,7 +130,7 @@ const columns = computed<DataTableColumns<AdminLink>>(() => [
     width: 100,
   },
   { key: 'introduce', title: '简介', width: 260, ellipsis: { tooltip: true } },
-  { key: 'createTime', title: '创建时间', width: 170 },
+  { key: 'createTime', title: '创建时间', width: 200 },
   {
     fixed: 'right',
     key: 'actions',
@@ -254,13 +256,18 @@ async function handleStatus(row: AdminLink, status: number) {
   await loadLinks();
 }
 
-async function handleDelete(row: AdminLink) {
-  if (!window.confirm(`确认删除“${row.name}”？`)) {
-    return;
-  }
-  await deleteAdminLinkApi(row.id);
-  message.success('友链已删除');
-  await loadLinks();
+/**
+ * 确认并删除友链。
+ *
+ * :param row: 友链数据。
+ * :return: 无返回值。
+ */
+function handleDelete(row: AdminLink): void {
+  showDeleteConfirm(`确认删除“${row.name}”？`, async () => {
+    await deleteAdminLinkApi(row.id);
+    message.success('友链已删除');
+    await loadLinks();
+  });
 }
 
 function handlePageChange(page: number) {
@@ -371,6 +378,7 @@ onMounted(loadLinks);
           <NFormItem label="封面" path="cover" class="md:col-span-2">
             <ImageUploadField
               v-model="form.cover"
+              allow-url-input
               aspect-ratio="16:9"
               dir-type="cover"
             />

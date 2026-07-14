@@ -7,13 +7,24 @@ export interface AdminComment {
   createTime: string;
   firstLevelId: SnowflakeId;
   id: SnowflakeId;
+  objContent?: null | string;
   objId: SnowflakeId;
   objType: number;
+  parentContent?: null | string;
   parentId: SnowflakeId;
   replyUserId: SnowflakeId;
   status: number;
   updateTime: string;
+  user?: AdminCommentUser | null;
   userId: SnowflakeId;
+}
+
+export interface AdminCommentUser {
+  avatar?: null | string;
+  id: SnowflakeId;
+  nickname: string;
+  uid: SnowflakeId;
+  username: string;
 }
 
 export interface AdminCommentPage {

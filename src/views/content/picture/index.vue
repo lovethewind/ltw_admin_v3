@@ -3,7 +3,15 @@ import type { DataTableColumns, FormInst, FormRules } from 'naive-ui';
 
 import type { VNodeChild } from 'vue';
 
-import type { AdminPicture, AdminPicturePayload, SnowflakeId } from '#/api';
+import type { ImageFileMetadata } from '../image-upload';
+
+import type {
+  AdminPicture,
+  AdminPictureAlbum,
+  AdminPicturePayload,
+  AdminUser,
+  SnowflakeId,
+} from '#/api';
 
 import { computed, h, onMounted, reactive, ref } from 'vue';
 
@@ -29,13 +37,19 @@ import {
 import {
   createAdminPictureApi,
   deleteAdminPictureApi,
+  getAdminPictureAlbumPageApi,
   getAdminPictureApi,
   getAdminPicturePageApi,
+  getAdminUserPageApi,
   updateAdminPictureApi,
   updateAdminPictureStatusApi,
 } from '#/api';
+import { showDeleteConfirm } from '#/utils/confirm';
+import { transformSize } from '#/utils/file';
 
 import { hasActionPermission } from '../../system/permission-actions';
+import AdminUserDisplay from '../../system/user/user-display.vue';
+import AdminUserSelect from '../../system/user/user-select.vue';
 import { renderImageCell } from '../image-cell';
 import ImageUploadField from '../image-upload-field.vue';
 import {
@@ -65,6 +79,8 @@ const modalVisible = ref(false);
 const editingId = ref<AdminPicture['id']>();
 const formRef = ref<FormInst | null>(null);
 const pictures = ref<AdminPicture[]>([]);
+const albums = ref<AdminPictureAlbum[]>([]);
+const users = ref<AdminUser[]>([]);
 const total = ref(0);
 
 const query = reactive({
@@ -89,11 +105,51 @@ const defaultForm: PictureForm = {
 
 const form = reactive<PictureForm>({ ...defaultForm });
 
+const albumOptions = computed(() =>
+  albums.value.map((album) => ({
+    label: album.name,
+    value: album.id,
+  })),
+);
+
 const rules: FormRules = {
-  albumId: { message: '请输入图册 ID', required: true, trigger: 'blur' },
+  albumId: { message: '请选择图册', required: true, trigger: 'change' },
   url: { message: '请选择图片', required: true, trigger: 'blur' },
-  userId: { message: '请输入用户 ID', required: true, trigger: 'blur' },
+  userId: { message: '请选择用户', required: true, trigger: 'change' },
 };
+
+/**
+ * 获取图册名称。
+ *
+ * :param albumId: 图册 ID。
+ * :return: 图册名称，未匹配时返回原始 ID。
+ */
+function getAlbumName(albumId: SnowflakeId): string {
+  return albums.value.find((album) => album.id === albumId)?.name ?? albumId;
+}
+
+/**
+ * 渲染图片列表中的用户信息。
+ *
+ * :param userId: 用户 ID。
+ * :return: 用户昵称和 UID 标签。
+ */
+function renderUserCell(userId: SnowflakeId): VNodeChild {
+  const user = users.value.find((item) => item.id === userId);
+  return h(AdminUserDisplay, { fallback: userId, user });
+}
+
+/**
+ * 使用上传图片的元数据填充表单。
+ *
+ * :param metadata: 图片文件元数据。
+ * :return: 无返回值。
+ */
+function handleImageUploaded(metadata: ImageFileMetadata): void {
+  form.height = metadata.height;
+  form.size = metadata.size;
+  form.width = metadata.width;
+}
 
 function canAccess(code: string) {
   return hasActionPermission(accessStore.accessCodes, code);
@@ -106,13 +162,23 @@ const columns = computed<DataTableColumns<AdminPicture>>(() => [
     title: '图片',
     width: 100,
   },
-  { key: 'albumId', title: '图册 ID', width: 170 },
-  { key: 'userId', title: '用户 ID', width: 170 },
+  {
+    key: 'albumId',
+    render: (row) => getAlbumName(row.albumId),
+    title: '图册',
+    width: 180,
+  },
+  {
+    key: 'userId',
+    render: (row) => renderUserCell(row.userId),
+    title: '用户',
+    width: 220,
+  },
   {
     key: 'size',
-    render: (row) => `${row.size}`,
+    render: (row) => transformSize(row.size),
     title: '大小',
-    width: 90,
+    width: 110,
   },
   {
     key: 'width',
@@ -135,7 +201,7 @@ const columns = computed<DataTableColumns<AdminPicture>>(() => [
     title: '状态',
     width: 100,
   },
-  { key: 'createTime', title: '创建时间', width: 170 },
+  { key: 'createTime', title: '创建时间', width: 200 },
   {
     fixed: 'right',
     key: 'actions',
@@ -197,6 +263,52 @@ const columns = computed<DataTableColumns<AdminPicture>>(() => [
 function resetForm() {
   Object.assign(form, { ...defaultForm });
   editingId.value = undefined;
+}
+
+/**
+ * 加载图册选择项。
+ *
+ * :return: 无返回值。
+ */
+async function loadAlbums(): Promise<void> {
+  const size = 200;
+  const records: AdminPictureAlbum[] = [];
+  let current = 1;
+  let totalAlbums: number;
+  try {
+    do {
+      const page = await getAdminPictureAlbumPageApi({ current, size });
+      records.push(...page.records);
+      totalAlbums = page.total;
+      current += 1;
+    } while (records.length < totalAlbums);
+    albums.value = records;
+  } catch {
+    albums.value = [];
+  }
+}
+
+/**
+ * 加载用户选择项。
+ *
+ * :return: 无返回值。
+ */
+async function loadUsers(): Promise<void> {
+  const size = 200;
+  const records: AdminUser[] = [];
+  let current = 1;
+  let totalUsers: number;
+  try {
+    do {
+      const page = await getAdminUserPageApi({ current, size });
+      records.push(...page.records);
+      totalUsers = page.total;
+      current += 1;
+    } while (records.length < totalUsers);
+    users.value = records;
+  } catch {
+    users.value = [];
+  }
 }
 
 async function loadPictures() {
@@ -263,13 +375,18 @@ async function handleStatus(row: AdminPicture, status: number) {
   await loadPictures();
 }
 
-async function handleDelete(row: AdminPicture) {
-  if (!window.confirm('确认删除这张图片？')) {
-    return;
-  }
-  await deleteAdminPictureApi(row.id);
-  message.success('图片已删除');
-  await loadPictures();
+/**
+ * 确认并删除图片。
+ *
+ * :param row: 图片数据。
+ * :return: 无返回值。
+ */
+function handleDelete(row: AdminPicture): void {
+  showDeleteConfirm('确认删除这张图片？', async () => {
+    await deleteAdminPictureApi(row.id);
+    message.success('图片已删除');
+    await loadPictures();
+  });
 }
 
 function handlePageChange(page: number) {
@@ -283,7 +400,16 @@ function handlePageSizeChange(size: number) {
   void loadPictures();
 }
 
-onMounted(loadPictures);
+/**
+ * 初始化图片管理页面数据。
+ *
+ * :return: 无返回值。
+ */
+async function initializePage(): Promise<void> {
+  await Promise.all([loadAlbums(), loadUsers(), loadPictures()]);
+}
+
+onMounted(initializePage);
 </script>
 
 <template>
@@ -298,17 +424,18 @@ onMounted(loadPictures);
             class="w-[220px]"
             @keyup.enter="handleSearch"
           />
-          <NInput
+          <NSelect
             v-model:value="query.albumId"
+            :options="albumOptions"
             clearable
-            placeholder="图册 ID"
-            class="w-[170px]"
+            filterable
+            placeholder="图册"
+            class="w-[200px]"
           />
-          <NInput
+          <AdminUserSelect
             v-model:value="query.userId"
-            clearable
-            placeholder="用户 ID"
-            class="w-[170px]"
+            :users="users"
+            class="w-[220px]"
           />
           <NSelect
             v-model:value="query.status"
@@ -371,11 +498,15 @@ onMounted(loadPictures);
         label-width="88"
       >
         <div class="grid grid-cols-1 gap-x-4 md:grid-cols-2">
-          <NFormItem label="用户 ID" path="userId">
-            <NInput v-model:value="form.userId" />
+          <NFormItem label="用户" path="userId">
+            <AdminUserSelect v-model:value="form.userId" :users="users" />
           </NFormItem>
-          <NFormItem label="图册 ID" path="albumId">
-            <NInput v-model:value="form.albumId" />
+          <NFormItem label="图册" path="albumId">
+            <NSelect
+              v-model:value="form.albumId"
+              :options="albumOptions"
+              filterable
+            />
           </NFormItem>
           <NFormItem label="大小" path="size">
             <NInputNumber v-model:value="form.size" class="w-full" :min="0" />
@@ -393,7 +524,11 @@ onMounted(loadPictures);
             <NInputNumber v-model:value="form.height" class="w-full" :min="0" />
           </NFormItem>
           <NFormItem label="图片" path="url" class="md:col-span-2">
-            <ImageUploadField v-model="form.url" dir-type="picture" />
+            <ImageUploadField
+              v-model="form.url"
+              dir-type="image"
+              @uploaded="handleImageUploaded"
+            />
           </NFormItem>
           <NFormItem label="说明" path="description" class="md:col-span-2">
             <NInput v-model:value="form.description" type="textarea" />

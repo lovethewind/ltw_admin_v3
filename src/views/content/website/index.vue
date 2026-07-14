@@ -43,11 +43,12 @@ import {
   updateAdminWebsiteApi,
   updateAdminWebsiteStatusApi,
 } from '#/api';
+import { showDeleteConfirm } from '#/utils/confirm';
 
 import { hasActionPermission } from '../../system/permission-actions';
-import { getUserUidLabel } from '../../system/user/user-select';
+import AdminUserDisplay from '../../system/user/user-display.vue';
 import AdminUserSelect from '../../system/user/user-select.vue';
-import { renderImageCell } from '../image-cell';
+import { renderImageCellWithInitialFallback } from '../image-cell';
 import ImageUploadField from '../image-upload-field.vue';
 import {
   checkStatusOptions,
@@ -127,20 +128,7 @@ function renderUserCell(userId: SnowflakeId): VNodeChild {
   if (!user) {
     return userId || '-';
   }
-  return h(
-    NSpace,
-    { align: 'center', size: 6 },
-    {
-      default: () => [
-        h('span', user.nickname || user.username || '未命名用户'),
-        h(
-          NTag,
-          { bordered: false, size: 'small', type: 'info' },
-          { default: () => getUserUidLabel(user) },
-        ),
-      ],
-    },
-  );
+  return h(AdminUserDisplay, { fallback: userId, user });
 }
 
 function canAccess(code: string) {
@@ -155,7 +143,8 @@ const columns = computed<DataTableColumns<AdminWebsite>>(() => [
   { key: 'name', title: '网站名', width: 160 },
   {
     key: 'cover',
-    render: (row) => renderImageCell(row.cover, row.name),
+    render: (row) =>
+      renderImageCellWithInitialFallback(row.cover, row.name),
     title: '封面',
     width: 100,
   },
@@ -188,7 +177,7 @@ const columns = computed<DataTableColumns<AdminWebsite>>(() => [
     title: '状态',
     width: 100,
   },
-  { key: 'createTime', title: '创建时间', width: 170 },
+  { key: 'createTime', title: '创建时间', width: 200 },
   {
     fixed: 'right',
     key: 'actions',
@@ -356,13 +345,18 @@ async function handleStatus(row: AdminWebsite, status: number) {
   await loadWebsites();
 }
 
-async function handleDelete(row: AdminWebsite) {
-  if (!window.confirm(`确认删除“${row.name}”？`)) {
-    return;
-  }
-  await deleteAdminWebsiteApi(row.id);
-  message.success('网站导航已删除');
-  await loadWebsites();
+/**
+ * 确认并删除网站导航。
+ *
+ * :param row: 网站导航数据。
+ * :return: 无返回值。
+ */
+function handleDelete(row: AdminWebsite): void {
+  showDeleteConfirm(`确认删除“${row.name}”？`, async () => {
+    await deleteAdminWebsiteApi(row.id);
+    message.success('网站导航已删除');
+    await loadWebsites();
+  });
 }
 
 function handlePageChange(page: number) {

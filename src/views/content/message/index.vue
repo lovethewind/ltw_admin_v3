@@ -3,7 +3,12 @@ import type { DataTableColumns, FormInst, FormRules } from 'naive-ui';
 
 import type { VNodeChild } from 'vue';
 
-import type { AdminMessage, AdminMessagePayload, SnowflakeId } from '#/api';
+import type {
+  AdminMessage,
+  AdminMessagePayload,
+  AdminUser,
+  SnowflakeId,
+} from '#/api';
 
 import { h, onMounted, reactive, ref } from 'vue';
 
@@ -27,10 +32,14 @@ import {
   deleteAdminMessageApi,
   getAdminMessageApi,
   getAdminMessagePageApi,
+  getAdminUserPageApi,
   updateAdminMessageApi,
 } from '#/api';
+import { showDeleteConfirm } from '#/utils/confirm';
 
 import { hasActionPermission } from '../../system/permission-actions';
+import AdminUserDisplay from '../../system/user/user-display.vue';
+import AdminUserSelect from '../../system/user/user-select.vue';
 
 type MessageForm = Required<
   Pick<
@@ -46,12 +55,12 @@ const modalVisible = ref(false);
 const editingId = ref<AdminMessage['id']>();
 const formRef = ref<FormInst | null>(null);
 const messages = ref<AdminMessage[]>([]);
+const users = ref<AdminUser[]>([]);
 const total = ref(0);
 
 const query = reactive({
   current: 1,
   keyword: '',
-  parentId: null as null | SnowflakeId,
   size: 10,
   userId: null as null | SnowflakeId,
 });
@@ -74,6 +83,19 @@ function canAccess(code: string) {
   return hasActionPermission(accessStore.accessCodes, code);
 }
 
+/**
+ * 获取父级留言的展示内容。
+ *
+ * :param messageItem: 留言数据。
+ * :return: 父级留言内容；顶级留言返回空字符串。
+ */
+function getParentMessageContent(messageItem: AdminMessage): string {
+  if (!messageItem.parentId || String(messageItem.parentId) === '0') {
+    return '';
+  }
+  return messageItem.parentContent || String(messageItem.parentId);
+}
+
 const columns: DataTableColumns<AdminMessage> = [
   {
     ellipsis: { tooltip: true },
@@ -93,8 +115,21 @@ const columns: DataTableColumns<AdminMessage> = [
     title: '邮箱',
     width: 180,
   },
-  { key: 'userId', title: '用户 ID', width: 170 },
-  { key: 'parentId', title: '父留言 ID', width: 170 },
+  {
+    ellipsis: { tooltip: true },
+    key: 'user',
+    render: (row) =>
+      h(AdminUserDisplay, { fallback: row.userId, user: row.user }),
+    title: '用户',
+    width: 220,
+  },
+  {
+    ellipsis: { tooltip: true },
+    key: 'parentContent',
+    render: (row) => getParentMessageContent(row),
+    title: '父级留言',
+    width: 260,
+  },
   {
     ellipsis: { tooltip: true },
     key: 'address',
@@ -106,7 +141,7 @@ const columns: DataTableColumns<AdminMessage> = [
     key: 'createTime',
     render: (row) => row.createTime || '-',
     title: '创建时间',
-    width: 170,
+    width: 200,
   },
   {
     fixed: 'right',
@@ -145,13 +180,40 @@ function resetForm() {
   editingId.value = undefined;
 }
 
-async function loadMessages() {
+/**
+ * 加载用户筛选选项。
+ *
+ * :return: 无返回值。
+ */
+async function loadUsers(): Promise<void> {
+  const size = 200;
+  const records: AdminUser[] = [];
+  let current = 1;
+  let totalUsers: number;
+  try {
+    do {
+      const page = await getAdminUserPageApi({ current, size });
+      records.push(...page.records);
+      totalUsers = page.total;
+      current += 1;
+    } while (records.length < totalUsers);
+    users.value = records;
+  } catch {
+    users.value = [];
+  }
+}
+
+/**
+ * 根据筛选条件加载留言列表。
+ *
+ * :return: 无返回值。
+ */
+async function loadMessages(): Promise<void> {
   loading.value = true;
   try {
     const page = await getAdminMessagePageApi({
       current: query.current,
       keyword: query.keyword || undefined,
-      parentId: query.parentId,
       size: query.size,
       userId: query.userId,
     });
@@ -192,13 +254,18 @@ async function handleSubmit() {
   await loadMessages();
 }
 
-async function handleDelete(row: AdminMessage) {
-  if (!window.confirm('确认删除这条留言？')) {
-    return;
-  }
-  await deleteAdminMessageApi(row.id);
-  message.success('留言已删除');
-  await loadMessages();
+/**
+ * 确认并删除留言。
+ *
+ * :param row: 留言数据。
+ * :return: 无返回值。
+ */
+function handleDelete(row: AdminMessage): void {
+  showDeleteConfirm('确认删除这条留言？', async () => {
+    await deleteAdminMessageApi(row.id);
+    message.success('留言已删除');
+    await loadMessages();
+  });
 }
 
 function handlePageChange(page: number) {
@@ -212,7 +279,16 @@ function handlePageSizeChange(size: number) {
   void loadMessages();
 }
 
-onMounted(loadMessages);
+/**
+ * 初始化留言管理页面。
+ *
+ * :return: 无返回值。
+ */
+async function initializePage(): Promise<void> {
+  await Promise.all([loadUsers(), loadMessages()]);
+}
+
+onMounted(initializePage);
 </script>
 
 <template>
@@ -226,17 +302,11 @@ onMounted(loadMessages);
           class="w-[240px]"
           @keyup.enter="handleSearch"
         />
-        <NInput
+        <AdminUserSelect
           v-model:value="query.userId"
-          clearable
-          placeholder="用户 ID"
-          class="w-[170px]"
-        />
-        <NInput
-          v-model:value="query.parentId"
-          clearable
-          placeholder="父留言 ID"
-          class="w-[170px]"
+          :users="users"
+          placeholder="用户"
+          class="w-[220px]"
         />
         <NButton
           v-if="canAccess('message:query')"
@@ -252,7 +322,7 @@ onMounted(loadMessages);
         :data="messages"
         :loading="loading"
         :row-key="(row) => row.id"
-        :scroll-x="1260"
+        :scroll-x="1400"
       />
 
       <NSpace justify="end" class="mt-4">

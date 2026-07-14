@@ -3,7 +3,7 @@ import type { DataTableColumns } from 'naive-ui';
 
 import type { VNodeChild } from 'vue';
 
-import type { AdminSource, SnowflakeId } from '#/api';
+import type { AdminSource, AdminUser, SnowflakeId } from '#/api';
 
 import { computed, h, onMounted, reactive, ref } from 'vue';
 
@@ -25,15 +25,20 @@ import {
 import {
   deleteAdminSourceApi,
   getAdminSourcePageApi,
+  getAdminUserPageApi,
   updateAdminSourceApi,
 } from '#/api';
+import { showDeleteConfirm } from '#/utils/confirm';
 
 import { hasActionPermission } from '../../system/permission-actions';
+import AdminUserDisplay from '../../system/user/user-display.vue';
+import AdminUserSelect from '../../system/user/user-select.vue';
 import { booleanNumberOptions, getBooleanLabel } from '../operation-options';
 const message = useMessage();
 const accessStore = useAccessStore();
 const loading = ref(false);
 const records = ref<AdminSource[]>([]);
+const users = ref<AdminUser[]>([]);
 const total = ref(0);
 const query = reactive({
   current: 1,
@@ -45,9 +50,26 @@ const query = reactive({
 function canAccess(code: string) {
   return hasActionPermission(accessStore.accessCodes, code);
 }
+
+/**
+ * 渲染资源所属用户。
+ *
+ * :param userId: 用户 ID。
+ * :return: 用户展示节点。
+ */
+function renderUserCell(userId: SnowflakeId): VNodeChild {
+  const user = users.value.find((item) => item.id === userId);
+  return h(AdminUserDisplay, { fallback: userId, user });
+}
+
 const columns = computed<DataTableColumns<AdminSource>>(() => [
   { key: 'url', title: '资源地址', width: 360, ellipsis: { tooltip: true } },
-  { key: 'userId', title: '用户 ID', width: 170 },
+  {
+    key: 'userId',
+    render: (row) => renderUserCell(row.userId),
+    title: '用户',
+    width: 220,
+  },
   {
     key: 'isDeleted',
     title: '已删除',
@@ -63,7 +85,7 @@ const columns = computed<DataTableColumns<AdminSource>>(() => [
         { default: () => getBooleanLabel(row.isDeleted) },
       ),
   },
-  { key: 'createTime', title: '创建时间', width: 170 },
+  { key: 'createTime', title: '创建时间', width: 200 },
   {
     fixed: 'right',
     key: 'actions',
@@ -83,12 +105,12 @@ const columns = computed<DataTableColumns<AdminSource>>(() => [
             { default: () => (row.isDeleted ? '恢复' : '标记删除') },
           ),
         );
-      if (canAccess('source:delete'))
+      if (canAccess('source:delete') && row.isDeleted)
         actions.push(
           h(
             NButton,
             { size: 'small', type: 'error', onClick: () => handleDelete(row) },
-            { default: () => '删除' },
+            { default: () => '永久删除' },
           ),
         );
       return actions.length > 0
@@ -97,6 +119,30 @@ const columns = computed<DataTableColumns<AdminSource>>(() => [
     },
   },
 ]);
+
+/**
+ * 加载资源用户选择项。
+ *
+ * :return: 无返回值。
+ */
+async function loadUsers(): Promise<void> {
+  const size = 200;
+  const userRecords: AdminUser[] = [];
+  let current = 1;
+  let totalUsers: number;
+  try {
+    do {
+      const page = await getAdminUserPageApi({ current, size });
+      userRecords.push(...page.records);
+      totalUsers = page.total;
+      current += 1;
+    } while (userRecords.length < totalUsers);
+    users.value = userRecords;
+  } catch {
+    users.value = [];
+  }
+}
+
 async function loadData() {
   loading.value = true;
   try {
@@ -122,11 +168,18 @@ async function handleStatus(row: AdminSource, isDeleted: boolean) {
   message.success('资源状态已更新');
   await loadData();
 }
-async function handleDelete(row: AdminSource) {
-  if (!window.confirm('确认删除该资源记录？')) return;
-  await deleteAdminSourceApi(row.id);
-  message.success('资源已删除');
-  await loadData();
+/**
+ * 确认并删除资源记录。
+ *
+ * :param row: 资源数据。
+ * :return: 无返回值。
+ */
+function handleDelete(row: AdminSource): void {
+  showDeleteConfirm('确认永久删除该资源及 OSS 文件？', async () => {
+    await deleteAdminSourceApi(row.id);
+    message.success('资源已删除');
+    await loadData();
+  });
 }
 function handlePageChange(page: number) {
   query.current = page;
@@ -137,7 +190,9 @@ function handlePageSizeChange(size: number) {
   query.current = 1;
   void loadData();
 }
-onMounted(loadData);
+onMounted(() => {
+  void Promise.all([loadUsers(), loadData()]);
+});
 </script>
 <template>
   <Page title="资源管理">
@@ -149,12 +204,11 @@ onMounted(loadData);
           placeholder="资源地址关键词"
           class="w-[240px]"
           @keyup.enter="handleSearch"
-        /><NInput
+        /><AdminUserSelect
           v-model:value="query.userId"
-          clearable
-          placeholder="用户 ID"
-          class="w-[180px]"
-          @keyup.enter="handleSearch"
+          :users="users"
+          placeholder="用户"
+          class="w-[220px]"
         /><NSelect
           v-model:value="query.isDeleted"
           :options="booleanNumberOptions"

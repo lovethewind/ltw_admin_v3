@@ -6,8 +6,6 @@ export const commentStatusOptions = [
 
 export const commentObjectTypeOptions = [
   { label: '文章', value: 1 },
-  { label: '评论', value: 2 },
-  { label: '用户', value: 3 },
   { label: '图片', value: 5 },
 ];
 

@@ -5,6 +5,38 @@ export interface ImageUploadClient {
   uploadToOss: (signature: AdminUploadSignature, file: File) => Promise<void>;
 }
 
+export interface ImageFileMetadata {
+  height: number;
+  size: number;
+  width: number;
+}
+
+/**
+ * 读取图片文件的大小和尺寸。
+ *
+ * :param file: 图片文件。
+ * :return: 图片文件元数据。
+ */
+export function getImageFileMetadata(file: File): Promise<ImageFileMetadata> {
+  return new Promise((resolve, reject) => {
+    const imageUrl = URL.createObjectURL(file);
+    const image = new Image();
+    image.onload = () => {
+      URL.revokeObjectURL(imageUrl);
+      resolve({
+        height: image.naturalHeight,
+        size: file.size,
+        width: image.naturalWidth,
+      });
+    };
+    image.onerror = () => {
+      URL.revokeObjectURL(imageUrl);
+      reject(new Error('读取图片信息失败'));
+    };
+    image.src = imageUrl;
+  });
+}
+
 export function validateImageUploadFile(
   file?: File | null,
 ): string | undefined {

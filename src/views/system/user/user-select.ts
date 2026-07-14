@@ -1,4 +1,11 @@
-import type { AdminUser } from '#/api';
+import type { SnowflakeId } from '#/api';
+
+export interface UserDisplayIdentity {
+  id: SnowflakeId;
+  nickname?: null | string;
+  uid?: null | SnowflakeId;
+  username?: null | string;
+}
 
 /**
  * 获取用户 UID 标签文本。
@@ -6,7 +13,7 @@ import type { AdminUser } from '#/api';
  * :param user: 管理后台用户
  * :return: 带 UID 前缀的标签文本
  */
-export function getUserUidLabel(user: Pick<AdminUser, 'id' | 'uid'>): string {
+export function getUserUidLabel(user: UserDisplayIdentity): string {
   return `UID ${user.uid || user.id}`;
 }
 
@@ -16,7 +23,7 @@ export function getUserUidLabel(user: Pick<AdminUser, 'id' | 'uid'>): string {
  * :param user: 管理后台用户
  * :return: 昵称（或用户名）与 UID 组合后的文本
  */
-export function getUserSelectLabel(user: AdminUser): string {
+export function getUserSelectLabel(user: UserDisplayIdentity): string {
   const name = user.nickname || user.username || '未命名用户';
   return `${name}（${getUserUidLabel(user)}）`;
 }

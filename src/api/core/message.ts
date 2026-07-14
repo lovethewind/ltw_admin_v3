@@ -11,10 +11,20 @@ export interface AdminMessage {
   firstLevelId: SnowflakeId;
   id: SnowflakeId;
   nickname?: null | string;
+  parentContent?: null | string;
   parentId: SnowflakeId;
   replyUserId: SnowflakeId;
   updateTime: string;
+  user?: AdminMessageUser | null;
   userId: SnowflakeId;
+}
+
+export interface AdminMessageUser {
+  avatar?: null | string;
+  id: SnowflakeId;
+  nickname: string;
+  uid: SnowflakeId;
+  username: string;
 }
 
 export interface AdminMessagePage {

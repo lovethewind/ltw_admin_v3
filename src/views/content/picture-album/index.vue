@@ -6,6 +6,7 @@ import type { VNodeChild } from 'vue';
 import type {
   AdminPictureAlbum,
   AdminPictureAlbumPayload,
+  AdminUser,
   SnowflakeId,
 } from '#/api';
 
@@ -34,11 +35,15 @@ import {
   deleteAdminPictureAlbumApi,
   getAdminPictureAlbumApi,
   getAdminPictureAlbumPageApi,
+  getAdminUserPageApi,
   updateAdminPictureAlbumApi,
   updateAdminPictureAlbumStatusApi,
 } from '#/api';
+import { showDeleteConfirm } from '#/utils/confirm';
 
 import { hasActionPermission } from '../../system/permission-actions';
+import AdminUserDisplay from '../../system/user/user-display.vue';
+import AdminUserSelect from '../../system/user/user-select.vue';
 import { renderImageCell } from '../image-cell';
 import ImageUploadField from '../image-upload-field.vue';
 import {
@@ -63,6 +68,7 @@ const modalVisible = ref(false);
 const editingId = ref<AdminPictureAlbum['id']>();
 const formRef = ref<FormInst | null>(null);
 const albums = ref<AdminPictureAlbum[]>([]);
+const users = ref<AdminUser[]>([]);
 const total = ref(0);
 
 const query = reactive({
@@ -88,8 +94,19 @@ const form = reactive<PictureAlbumForm>({ ...defaultForm });
 const rules: FormRules = {
   cover: { message: '请输入图册封面', required: true, trigger: 'blur' },
   name: { message: '请输入图册名称', required: true, trigger: 'blur' },
-  userId: { message: '请输入用户 ID', required: true, trigger: 'blur' },
+  userId: { message: '请选择用户', required: true, trigger: 'change' },
 };
+
+/**
+ * 渲染图册列表中的用户信息。
+ *
+ * :param userId: 用户 ID。
+ * :return: 用户昵称和 UID 标签。
+ */
+function renderUserCell(userId: SnowflakeId): VNodeChild {
+  const user = users.value.find((item) => item.id === userId);
+  return h(AdminUserDisplay, { fallback: userId, user });
+}
 
 function canAccess(code: string) {
   return hasActionPermission(accessStore.accessCodes, code);
@@ -103,7 +120,12 @@ const columns = computed<DataTableColumns<AdminPictureAlbum>>(() => [
     title: '封面',
     width: 100,
   },
-  { key: 'userId', title: '用户 ID', width: 170 },
+  {
+    key: 'userId',
+    render: (row) => renderUserCell(row.userId),
+    title: '用户',
+    width: 220,
+  },
   {
     key: 'albumType',
     render: (row) => getAlbumTypeLabel(row.albumType),
@@ -132,7 +154,7 @@ const columns = computed<DataTableColumns<AdminPictureAlbum>>(() => [
     width: 220,
     ellipsis: { tooltip: true },
   },
-  { key: 'createTime', title: '创建时间', width: 170 },
+  { key: 'createTime', title: '创建时间', width: 200 },
   {
     fixed: 'right',
     key: 'actions',
@@ -194,6 +216,29 @@ const columns = computed<DataTableColumns<AdminPictureAlbum>>(() => [
 function resetForm() {
   Object.assign(form, { ...defaultForm });
   editingId.value = undefined;
+}
+
+/**
+ * 加载图册用户选择项。
+ *
+ * :return: 无返回值。
+ */
+async function loadUsers(): Promise<void> {
+  const size = 200;
+  const records: AdminUser[] = [];
+  let current = 1;
+  let totalUsers: number;
+  try {
+    do {
+      const page = await getAdminUserPageApi({ current, size });
+      records.push(...page.records);
+      totalUsers = page.total;
+      current += 1;
+    } while (records.length < totalUsers);
+    users.value = records;
+  } catch {
+    users.value = [];
+  }
 }
 
 async function loadAlbums() {
@@ -258,13 +303,18 @@ async function handleStatus(row: AdminPictureAlbum, status: number) {
   await loadAlbums();
 }
 
-async function handleDelete(row: AdminPictureAlbum) {
-  if (!window.confirm(`确认删除“${row.name}”？`)) {
-    return;
-  }
-  await deleteAdminPictureAlbumApi(row.id);
-  message.success('图册已删除');
-  await loadAlbums();
+/**
+ * 确认并删除图册。
+ *
+ * :param row: 图册数据。
+ * :return: 无返回值。
+ */
+function handleDelete(row: AdminPictureAlbum): void {
+  showDeleteConfirm(`确认删除“${row.name}”？`, async () => {
+    await deleteAdminPictureAlbumApi(row.id);
+    message.success('图册已删除');
+    await loadAlbums();
+  });
 }
 
 function handlePageChange(page: number) {
@@ -278,7 +328,16 @@ function handlePageSizeChange(size: number) {
   void loadAlbums();
 }
 
-onMounted(loadAlbums);
+/**
+ * 初始化图册管理页面数据。
+ *
+ * :return: 无返回值。
+ */
+async function initializePage(): Promise<void> {
+  await Promise.all([loadUsers(), loadAlbums()]);
+}
+
+onMounted(initializePage);
 </script>
 
 <template>
@@ -293,11 +352,10 @@ onMounted(loadAlbums);
             class="w-[220px]"
             @keyup.enter="handleSearch"
           />
-          <NInput
+          <AdminUserSelect
             v-model:value="query.userId"
-            clearable
-            placeholder="用户 ID"
-            class="w-[170px]"
+            :users="users"
+            class="w-[220px]"
           />
           <NSelect
             v-model:value="query.albumType"
@@ -370,8 +428,8 @@ onMounted(loadAlbums);
           <NFormItem label="图册名称" path="name">
             <NInput v-model:value="form.name" />
           </NFormItem>
-          <NFormItem label="用户 ID" path="userId">
-            <NInput v-model:value="form.userId" />
+          <NFormItem label="用户" path="userId">
+            <AdminUserSelect v-model:value="form.userId" :users="users" />
           </NFormItem>
           <NFormItem label="类型" path="albumType">
             <NSelect

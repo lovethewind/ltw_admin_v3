@@ -31,6 +31,7 @@ export type AdminJobPayload = Partial<
 >;
 
 export async function getAdminJobPageApi(params: {
+  createUserId?: null | SnowflakeId;
   current: number;
   group?: string;
   keyword?: string;

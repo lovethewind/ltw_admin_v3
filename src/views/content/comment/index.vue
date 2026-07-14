@@ -3,7 +3,12 @@ import type { DataTableColumns, FormInst, FormRules } from 'naive-ui';
 
 import type { VNodeChild } from 'vue';
 
-import type { AdminComment, AdminCommentPayload, SnowflakeId } from '#/api';
+import type {
+  AdminComment,
+  AdminCommentPayload,
+  AdminUser,
+  SnowflakeId,
+} from '#/api';
 
 import { computed, h, onMounted, reactive, ref } from 'vue';
 
@@ -29,11 +34,15 @@ import {
   deleteAdminCommentApi,
   getAdminCommentApi,
   getAdminCommentPageApi,
+  getAdminUserPageApi,
   updateAdminCommentApi,
   updateAdminCommentStatusApi,
 } from '#/api';
+import { showDeleteConfirm } from '#/utils/confirm';
 
 import { hasActionPermission } from '../../system/permission-actions';
+import AdminUserDisplay from '../../system/user/user-display.vue';
+import AdminUserSelect from '../../system/user/user-select.vue';
 import {
   commentObjectTypeOptions,
   commentStatusOptions,
@@ -51,6 +60,7 @@ const modalVisible = ref(false);
 const editingId = ref<AdminComment['id']>();
 const formRef = ref<FormInst | null>(null);
 const comments = ref<AdminComment[]>([]);
+const users = ref<AdminUser[]>([]);
 const total = ref(0);
 
 const query = reactive({
@@ -72,15 +82,43 @@ const form = reactive<CommentForm>({ ...defaultForm });
 
 const rules: FormRules = {
   content: { message: '请输入评论内容', required: true, trigger: 'blur' },
-  status: { message: '请选择状态', required: true, trigger: 'change' },
+  status: {
+    message: '请选择状态',
+    required: true,
+    trigger: 'change',
+    type: 'number',
+  },
 };
 
-const statusActionOptions = computed(() =>
-  commentStatusOptions.filter((item) => item.value !== 3),
+const statusActionOptions = commentStatusOptions.map((item) =>
+  item.value === 3 ? { ...item, label: '删除' } : item,
 );
 
 function canAccess(code: string) {
   return hasActionPermission(accessStore.accessCodes, code);
+}
+
+/**
+ * 获取评论对象的展示内容。
+ *
+ * :param comment: 评论数据。
+ * :return: 对象内容；对象不存在时返回对象 ID。
+ */
+function getCommentObjectContent(comment: AdminComment): string {
+  return comment.objContent || String(comment.objId);
+}
+
+/**
+ * 获取父级评论的展示内容。
+ *
+ * :param comment: 评论数据。
+ * :return: 父级评论内容；顶级评论返回空字符串。
+ */
+function getParentCommentContent(comment: AdminComment): string {
+  if (!comment.parentId || String(comment.parentId) === '0') {
+    return '';
+  }
+  return comment.parentContent || String(comment.parentId);
 }
 
 const columns = computed<DataTableColumns<AdminComment>>(() => [
@@ -96,8 +134,21 @@ const columns = computed<DataTableColumns<AdminComment>>(() => [
     title: '对象类型',
     width: 110,
   },
-  { key: 'objId', title: '对象 ID', width: 170 },
-  { key: 'userId', title: '用户 ID', width: 170 },
+  {
+    ellipsis: { tooltip: true },
+    key: 'objContent',
+    render: (row) => getCommentObjectContent(row),
+    title: '对象',
+    width: 260,
+  },
+  {
+    ellipsis: { tooltip: true },
+    key: 'user',
+    render: (row) =>
+      h(AdminUserDisplay, { fallback: row.userId, user: row.user }),
+    title: '用户',
+    width: 220,
+  },
   {
     key: 'status',
     render: (row) =>
@@ -113,12 +164,19 @@ const columns = computed<DataTableColumns<AdminComment>>(() => [
     title: '状态',
     width: 100,
   },
-  { key: 'parentId', title: '父评论 ID', width: 170 },
+  {
+    ellipsis: { tooltip: true },
+    key: 'parentContent',
+    render: (row) => getParentCommentContent(row),
+    title: '父级评论',
+    width: 260,
+  },
   {
     key: 'createTime',
-    render: (row) => row.createTime || '-',
+    render: (row) =>
+      h('span', { class: 'whitespace-nowrap' }, row.createTime || '-'),
     title: '创建时间',
-    width: 170,
+    width: 200,
   },
   {
     fixed: 'right',
@@ -165,7 +223,7 @@ const columns = computed<DataTableColumns<AdminComment>>(() => [
           h(
             NButton,
             { size: 'small', type: 'error', onClick: () => handleDelete(row) },
-            { default: () => '删除' },
+            { default: () => '永久删除' },
           ),
         );
       }
@@ -181,6 +239,29 @@ const columns = computed<DataTableColumns<AdminComment>>(() => [
 function resetForm() {
   Object.assign(form, { ...defaultForm });
   editingId.value = undefined;
+}
+
+/**
+ * 加载用户筛选选项。
+ *
+ * :return: 无返回值。
+ */
+async function loadUsers(): Promise<void> {
+  const size = 200;
+  const records: AdminUser[] = [];
+  let current = 1;
+  let totalUsers: number;
+  try {
+    do {
+      const page = await getAdminUserPageApi({ current, size });
+      records.push(...page.records);
+      totalUsers = page.total;
+      current += 1;
+    } while (records.length < totalUsers);
+    users.value = records;
+  } catch {
+    users.value = [];
+  }
 }
 
 async function loadComments() {
@@ -235,13 +316,22 @@ async function handleStatus(row: AdminComment, status: number) {
   await loadComments();
 }
 
-async function handleDelete(row: AdminComment) {
-  if (!window.confirm('确认删除这条评论？')) {
-    return;
-  }
-  await deleteAdminCommentApi(row.id);
-  message.success('评论已删除');
-  await loadComments();
+/**
+ * 确认并删除评论。
+ *
+ * :param row: 评论数据。
+ * :return: 无返回值。
+ */
+function handleDelete(row: AdminComment): void {
+  showDeleteConfirm(
+    '永久删除后无法恢复，确认永久删除这条评论？',
+    async () => {
+      await deleteAdminCommentApi(row.id);
+      message.success('评论已永久删除');
+      await loadComments();
+    },
+    { positiveText: '永久删除', title: '永久删除' },
+  );
 }
 
 function handlePageChange(page: number) {
@@ -255,7 +345,16 @@ function handlePageSizeChange(size: number) {
   void loadComments();
 }
 
-onMounted(loadComments);
+/**
+ * 初始化评论管理页面。
+ *
+ * :return: 无返回值。
+ */
+async function initializePage(): Promise<void> {
+  await Promise.all([loadUsers(), loadComments()]);
+}
+
+onMounted(initializePage);
 </script>
 
 <template>
@@ -282,11 +381,11 @@ onMounted(loadComments);
           placeholder="对象 ID"
           class="w-[170px]"
         />
-        <NInput
+        <AdminUserSelect
           v-model:value="query.userId"
-          clearable
-          placeholder="用户 ID"
-          class="w-[170px]"
+          :users="users"
+          placeholder="用户"
+          class="w-[220px]"
         />
         <NSelect
           v-model:value="query.status"
@@ -309,7 +408,7 @@ onMounted(loadComments);
         :data="comments"
         :loading="loading"
         :row-key="(row) => row.id"
-        :scroll-x="1400"
+        :scroll-x="1660"
       />
 
       <NSpace justify="end" class="mt-4">

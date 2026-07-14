@@ -7,9 +7,10 @@ import type { AdminUser, SnowflakeId } from '#/api';
 
 import { computed, h } from 'vue';
 
-import { NSelect, NSpace, NTag } from 'naive-ui';
+import { NSelect } from 'naive-ui';
 
-import { getUserSelectLabel, getUserUidLabel } from './user-select';
+import AdminUserDisplay from './user-display.vue';
+import { getUserSelectLabel } from './user-select';
 
 const props = withDefaults(
   defineProps<{
@@ -49,20 +50,7 @@ function renderOptionLabel(option: SelectOption): VNodeChild {
   if (!user) {
     return option.label as VNodeChild;
   }
-  return h(
-    NSpace,
-    { align: 'center', size: 6 },
-    {
-      default: () => [
-        h('span', user.nickname || user.username || '未命名用户'),
-        h(
-          NTag,
-          { bordered: false, size: 'small', type: 'info' },
-          { default: () => getUserUidLabel(user) },
-        ),
-      ],
-    },
-  );
+  return h(AdminUserDisplay, { user });
 }
 </script>
 

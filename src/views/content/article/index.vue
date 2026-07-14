@@ -49,6 +49,7 @@ import {
   updateAdminArticleApi,
   updateAdminArticleStatusApi,
 } from '#/api';
+import { showDeleteConfirm } from '#/utils/confirm';
 
 import { hasActionPermission } from '../../system/permission-actions';
 import { getGenderLabel } from '../../system/user/user-options';
@@ -107,6 +108,7 @@ const query = reactive({
   keyword: '',
   size: 10,
   status: null as null | number,
+  userId: null as null | SnowflakeId,
 });
 
 const defaultForm: ArticleForm = {
@@ -221,7 +223,7 @@ const columns = computed<DataTableColumns<AdminArticle>>(() => [
     key: 'createTime',
     render: (row) => row.createTime || '-',
     title: '创建时间',
-    width: 170,
+    width: 200,
   },
   {
     fixed: 'right',
@@ -311,7 +313,12 @@ async function ensureAuthorLoaded(userId: SnowflakeId) {
   }
 }
 
-async function loadArticles() {
+/**
+ * 根据筛选条件加载文章列表。
+ *
+ * :return: 无返回值。
+ */
+async function loadArticles(): Promise<void> {
   loading.value = true;
   try {
     const page = await getAdminArticlePageApi({
@@ -321,6 +328,7 @@ async function loadArticles() {
       keyword: query.keyword || undefined,
       size: query.size,
       status: query.status,
+      userId: query.userId,
     });
     articles.value = page.records;
     total.value = page.total;
@@ -402,13 +410,18 @@ async function handleStatus(row: AdminArticle, status: number) {
   await loadArticles();
 }
 
-async function handleDelete(row: AdminArticle) {
-  if (!window.confirm(`确认删除“${row.title}”？`)) {
-    return;
-  }
-  await deleteAdminArticleApi(row.id);
-  message.success('文章已删除');
-  await loadArticles();
+/**
+ * 确认并删除文章。
+ *
+ * :param row: 文章数据。
+ * :return: 无返回值。
+ */
+function handleDelete(row: AdminArticle): void {
+  showDeleteConfirm(`确认删除“${row.title}”？`, async () => {
+    await deleteAdminArticleApi(row.id);
+    message.success('文章已删除');
+    await loadArticles();
+  });
 }
 
 function handlePageChange(page: number) {
@@ -446,6 +459,12 @@ onMounted(async () => {
             clearable
             placeholder="分类"
             class="w-[150px]"
+          />
+          <AdminUserSelect
+            v-model:value="query.userId"
+            :users="authors"
+            placeholder="作者"
+            class="w-[220px]"
           />
           <NSelect
             v-model:value="query.status"

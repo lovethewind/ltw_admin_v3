@@ -48,6 +48,7 @@ import {
   updateAdminUserApi,
   updateAdminUserRolesApi,
 } from '#/api';
+import { showDeleteConfirm } from '#/utils/confirm';
 
 import { hasActionPermission } from '../permission-actions';
 import {
@@ -292,7 +293,7 @@ const columns = computed<DataTableColumns<AdminUser>>(() => [
     key: 'registerTime',
     render: (row) => row.registerTime || '-',
     title: '注册时间',
-    width: 190,
+    width: 200,
   },
   {
     key: 'lastLoginIp',
@@ -304,7 +305,7 @@ const columns = computed<DataTableColumns<AdminUser>>(() => [
     key: 'lastLoginTime',
     render: (row) => row.lastLoginTime || '-',
     title: '最后登录',
-    width: 190,
+    width: 200,
   },
   {
     fixed: 'right',
@@ -543,13 +544,18 @@ function handleCancelAvatarUpload() {
   avatarUploadFileList.value = cancelledAvatar.uploadFileList;
 }
 
-async function handleDelete(row: AdminUser) {
-  if (!window.confirm(`确认删除“${row.nickname || row.username}”？`)) {
-    return;
-  }
-  await deleteAdminUserApi(row.id);
-  message.success('用户已删除');
-  await loadUsers();
+/**
+ * 确认并删除用户。
+ *
+ * :param row: 用户数据。
+ * :return: 无返回值。
+ */
+function handleDelete(row: AdminUser): void {
+  showDeleteConfirm(`确认删除“${row.nickname || row.username}”？`, async () => {
+    await deleteAdminUserApi(row.id);
+    message.success('用户已删除');
+    await loadUsers();
+  });
 }
 
 async function openRole(row: AdminUser) {

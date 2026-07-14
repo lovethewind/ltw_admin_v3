@@ -29,6 +29,7 @@ import {
   getAdminWebsiteCategoryListApi,
   updateAdminWebsiteCategoryApi,
 } from '#/api';
+import { showDeleteConfirm } from '#/utils/confirm';
 
 import { hasActionPermission } from '../../system/permission-actions';
 
@@ -58,8 +59,8 @@ function canAccess(code: string) {
 const columns = computed<DataTableColumns<AdminWebsiteCategory>>(() => [
   { key: 'name', title: '分类名', width: 180 },
   { key: 'index', title: '排序', width: 100 },
-  { key: 'createTime', title: '创建时间', width: 170 },
-  { key: 'updateTime', title: '更新时间', width: 170 },
+  { key: 'createTime', title: '创建时间', width: 200 },
+  { key: 'updateTime', title: '更新时间', width: 200 },
   {
     fixed: 'right',
     key: 'actions',
@@ -133,13 +134,18 @@ async function handleSubmit() {
   await loadCategories();
 }
 
-async function handleDelete(row: AdminWebsiteCategory) {
-  if (!window.confirm(`确认删除“${row.name}”？`)) {
-    return;
-  }
-  await deleteAdminWebsiteCategoryApi(row.id);
-  message.success('导航分类已删除');
-  await loadCategories();
+/**
+ * 确认并删除导航分类。
+ *
+ * :param row: 导航分类数据。
+ * :return: 无返回值。
+ */
+function handleDelete(row: AdminWebsiteCategory): void {
+  showDeleteConfirm(`确认删除“${row.name}”？`, async () => {
+    await deleteAdminWebsiteCategoryApi(row.id);
+    message.success('导航分类已删除');
+    await loadCategories();
+  });
 }
 
 onMounted(loadCategories);

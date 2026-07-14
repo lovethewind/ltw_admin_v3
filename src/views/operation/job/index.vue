@@ -45,9 +45,10 @@ import {
   updateAdminJobApi,
   updateAdminJobStatusApi,
 } from '#/api';
+import { showDeleteConfirm } from '#/utils/confirm';
 
 import { hasActionPermission } from '../../system/permission-actions';
-import { getUserUidLabel } from '../../system/user/user-select';
+import AdminUserDisplay from '../../system/user/user-display.vue';
 import AdminUserSelect from '../../system/user/user-select.vue';
 import {
   getJobStatusType,
@@ -57,6 +58,7 @@ import {
 } from '../operation-options';
 import {
   buildJobCronExpression,
+  getJobCronDescription,
   parseJobCronExpression,
 } from './job-cron';
 const message = useMessage();
@@ -69,6 +71,7 @@ const records = ref<AdminJob[]>([]);
 const users = ref<AdminUser[]>([]);
 const total = ref(0);
 const query = reactive({
+  createUserId: null as null | SnowflakeId,
   current: 1,
   group: '',
   keyword: '',
@@ -128,25 +131,18 @@ function canAccess(code: string) {
   return hasActionPermission(accessStore.accessCodes, code);
 }
 
+/**
+ * 渲染任务列表中的用户信息。
+ *
+ * :param userId: 用户 ID。
+ * :return: 用户昵称和 UID 标签。
+ */
 function renderUserCell(userId: SnowflakeId): VNodeChild {
   const user = users.value.find((item) => item.id === userId);
   if (!user) {
     return userId || '-';
   }
-  return h(
-    NSpace,
-    { align: 'center', size: 6 },
-    {
-      default: () => [
-        h('span', user.nickname || user.username || '未命名用户'),
-        h(
-          NTag,
-          { bordered: false, size: 'small', type: 'info' },
-          { default: () => getUserUidLabel(user) },
-        ),
-      ],
-    },
-  );
+  return h(AdminUserDisplay, { fallback: userId, user });
 }
 const columns = computed<DataTableColumns<AdminJob>>(() => [
   { key: 'name', title: '任务名称', width: 160 },
@@ -158,6 +154,13 @@ const columns = computed<DataTableColumns<AdminJob>>(() => [
     ellipsis: { tooltip: true },
   },
   { key: 'cronExpression', title: 'Cron', width: 160 },
+  {
+    ellipsis: { tooltip: true },
+    key: 'cronDescription',
+    render: (row) => getJobCronDescription(row.cronExpression),
+    title: '执行计划',
+    width: 200,
+  },
   {
     key: 'status',
     title: '状态',
@@ -175,7 +178,7 @@ const columns = computed<DataTableColumns<AdminJob>>(() => [
     title: '创建者',
     width: 190,
   },
-  { key: 'createTime', title: '创建时间', width: 170 },
+  { key: 'createTime', title: '创建时间', width: 200 },
   {
     fixed: 'right',
     key: 'actions',
@@ -323,6 +326,7 @@ async function loadData() {
   loading.value = true;
   try {
     const page = await getAdminJobPageApi({
+      createUserId: query.createUserId,
       current: query.current,
       group: query.group || undefined,
       keyword: query.keyword || undefined,
@@ -370,11 +374,18 @@ async function handleStatus(row: AdminJob, status: number) {
   message.success('任务状态已更新');
   await loadData();
 }
-async function handleDelete(row: AdminJob) {
-  if (!window.confirm(`确认删除“${row.name}”？`)) return;
-  await deleteAdminJobApi(row.id);
-  message.success('定时任务已删除');
-  await loadData();
+/**
+ * 确认并删除定时任务。
+ *
+ * :param row: 定时任务数据。
+ * :return: 无返回值。
+ */
+function handleDelete(row: AdminJob): void {
+  showDeleteConfirm(`确认删除“${row.name}”？`, async () => {
+    await deleteAdminJobApi(row.id);
+    message.success('定时任务已删除');
+    await loadData();
+  });
 }
 function handlePageChange(page: number) {
   query.current = page;
@@ -407,6 +418,11 @@ onMounted(async () => {
             placeholder="任务组"
             class="w-[160px]"
             @keyup.enter="handleSearch"
+          /><AdminUserSelect
+            v-model:value="query.createUserId"
+            :users="users"
+            class="w-[220px]"
+            placeholder="创建者"
           /><NSelect
             v-model:value="query.status"
             :options="jobStatusOptions"
@@ -436,7 +452,7 @@ onMounted(async () => {
         :data="records"
         :loading="loading"
         :row-key="(row) => row.id"
-        :scroll-x="1280"
+        :scroll-x="1580"
       /><NSpace justify="end" class="mt-4">
         <NPagination
           :item-count="total"

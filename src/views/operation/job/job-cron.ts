@@ -161,3 +161,55 @@ export function parseJobCronExpression(
   }
   return null;
 }
+
+const weekdayLabels = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'];
+
+/**
+ * 将 Cron 中的当天分钟数格式化为时间。
+ *
+ * :param minutes: 当天分钟数。
+ * :return: HH:mm 格式时间。
+ */
+function formatJobCronTime(minutes: number): string {
+  const hour = Math.floor(minutes / 60)
+    .toString()
+    .padStart(2, '0');
+  const minute = (minutes % 60).toString().padStart(2, '0');
+  return `${hour}:${minute}`;
+}
+
+/**
+ * 将定时任务 Cron 表达式转换为中文含义。
+ *
+ * :param expression: APScheduler Cron 表达式。
+ * :return: Cron 中文描述。
+ */
+export function getJobCronDescription(expression: string): string {
+  const config = parseJobCronExpression(expression);
+  if (!config) {
+    return expression.trim() ? '自定义计划' : '-';
+  }
+  if (
+    config.mode === 'interval' &&
+    config.intervalUnit &&
+    config.intervalValue
+  ) {
+    const unitLabels: Record<JobCronIntervalUnit, string> = {
+      hour: '小时',
+      minute: '分钟',
+      second: '秒',
+    };
+    return `每${config.intervalValue}${unitLabels[config.intervalUnit]}执行一次`;
+  }
+  if (config.time === null) {
+    return '自定义计划';
+  }
+  const time = formatJobCronTime(config.time);
+  if (config.mode === 'weekly' && config.weekday !== undefined) {
+    return `每${weekdayLabels[config.weekday]} ${time}`;
+  }
+  if (config.mode === 'monthly' && config.monthDay !== undefined) {
+    return `每月${config.monthDay}日 ${time}`;
+  }
+  return `每天 ${time}`;
+}

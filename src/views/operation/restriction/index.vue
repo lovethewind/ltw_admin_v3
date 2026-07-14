@@ -4,6 +4,7 @@ import type { DataTableColumns, FormInst, FormRules } from 'naive-ui';
 import type { VNodeChild } from 'vue';
 
 import type {
+  AdminUser,
   AdminUserRestriction,
   AdminUserRestrictionPayload,
   SnowflakeId,
@@ -18,6 +19,7 @@ import {
   NButton,
   NCard,
   NDataTable,
+  NDatePicker,
   NForm,
   NFormItem,
   NInput,
@@ -34,11 +36,15 @@ import {
   cancelAdminUserRestrictionApi,
   createAdminUserRestrictionApi,
   deleteAdminUserRestrictionApi,
+  getAdminUserPageApi,
   getAdminUserRestrictionPageApi,
   updateAdminUserRestrictionApi,
 } from '#/api';
+import { showDeleteConfirm, showPromptDialog } from '#/utils/confirm';
 
 import { hasActionPermission } from '../../system/permission-actions';
+import AdminUserDisplay from '../../system/user/user-display.vue';
+import AdminUserSelect from '../../system/user/user-select.vue';
 import {
   booleanNumberOptions,
   getBooleanLabel,
@@ -52,6 +58,7 @@ const modalVisible = ref(false);
 const editingId = ref<AdminUserRestriction['id']>();
 const formRef = ref<FormInst | null>(null);
 const records = ref<AdminUserRestriction[]>([]);
+const users = ref<AdminUser[]>([]);
 const total = ref(0);
 const query = reactive({
   current: 1,
@@ -61,7 +68,9 @@ const query = reactive({
   userId: null as null | SnowflakeId,
 });
 const form = reactive<AdminUserRestrictionPayload>({
+  cancelReason: '',
   endTime: null,
+  isCancel: false,
   isForever: false,
   reason: '',
   restrictType: 1,
@@ -73,14 +82,32 @@ const rules: FormRules = {
     message: '请选择限制类型',
     required: true,
     trigger: 'change',
+    type: 'number',
   },
-  userId: { message: '请输入用户 ID', required: true, trigger: 'blur' },
+  userId: { message: '请选择用户', required: true, trigger: 'change' },
 };
 function canAccess(code: string) {
   return hasActionPermission(accessStore.accessCodes, code);
 }
+
+/**
+ * 渲染受限用户。
+ *
+ * :param userId: 用户 ID。
+ * :return: 用户展示节点。
+ */
+function renderUserCell(userId: SnowflakeId): VNodeChild {
+  const user = users.value.find((item) => item.id === userId);
+  return h(AdminUserDisplay, { fallback: userId, user });
+}
+
 const columns = computed<DataTableColumns<AdminUserRestriction>>(() => [
-  { key: 'userId', title: '用户 ID', width: 170 },
+  {
+    key: 'userId',
+    render: (row) => renderUserCell(row.userId),
+    title: '用户',
+    width: 220,
+  },
   {
     key: 'restrictType',
     title: '限制类型',
@@ -93,6 +120,19 @@ const columns = computed<DataTableColumns<AdminUserRestriction>>(() => [
     width: 80,
     render: (row) => getBooleanLabel(row.isForever),
   },
+  {
+    key: 'startTime',
+    render: (row) => row.startTime || '-',
+    title: '开始时间',
+    width: 200,
+  },
+  {
+    key: 'endTime',
+    render: (row) => row.endTime || '-',
+    title: '结束时间',
+    width: 200,
+  },
+  { key: 'reason', title: '原因', width: 220, ellipsis: { tooltip: true } },
   {
     key: 'isCancel',
     title: '已解除',
@@ -108,8 +148,14 @@ const columns = computed<DataTableColumns<AdminUserRestriction>>(() => [
         { default: () => getBooleanLabel(row.isCancel) },
       ),
   },
-  { key: 'reason', title: '原因', width: 220, ellipsis: { tooltip: true } },
-  { key: 'createTime', title: '创建时间', width: 170 },
+  {
+    ellipsis: { tooltip: true },
+    key: 'cancelReason',
+    render: (row) => row.cancelReason || '-',
+    title: '解除原因',
+    width: 220,
+  },
+  { key: 'createTime', title: '创建时间', width: 200 },
   {
     fixed: 'right',
     key: 'actions',
@@ -151,9 +197,35 @@ const columns = computed<DataTableColumns<AdminUserRestriction>>(() => [
     },
   },
 ]);
+
+/**
+ * 加载用户限制选择项。
+ *
+ * :return: 无返回值。
+ */
+async function loadUsers(): Promise<void> {
+  const size = 200;
+  const userRecords: AdminUser[] = [];
+  let current = 1;
+  let totalUsers: number;
+  try {
+    do {
+      const page = await getAdminUserPageApi({ current, size });
+      userRecords.push(...page.records);
+      totalUsers = page.total;
+      current += 1;
+    } while (userRecords.length < totalUsers);
+    users.value = userRecords;
+  } catch {
+    users.value = [];
+  }
+}
+
 function resetForm() {
   Object.assign(form, {
+    cancelReason: '',
     endTime: null,
+    isCancel: false,
     isForever: false,
     reason: '',
     restrictType: 1,
@@ -189,7 +261,9 @@ function openCreate() {
 function openEdit(row: AdminUserRestriction) {
   resetForm();
   Object.assign(form, {
+    cancelReason: row.cancelReason ?? '',
     endTime: row.endTime,
+    isCancel: row.isCancel,
     isForever: row.isForever,
     reason: row.reason ?? '',
     restrictType: row.restrictType,
@@ -201,27 +275,61 @@ function openEdit(row: AdminUserRestriction) {
 }
 async function handleSubmit() {
   await formRef.value?.validate();
+  const payload = { ...form };
   if (editingId.value) {
-    await updateAdminUserRestrictionApi(editingId.value, form);
+    if (!payload.isCancel) payload.cancelReason = '';
+    await updateAdminUserRestrictionApi(editingId.value, payload);
     message.success('用户限制已更新');
   } else {
-    await createAdminUserRestrictionApi(form);
+    delete payload.cancelReason;
+    delete payload.isCancel;
+    await createAdminUserRestrictionApi(payload);
     message.success('用户限制已创建');
   }
   modalVisible.value = false;
   await loadData();
 }
-async function handleCancel(row: AdminUserRestriction) {
-  const cancelReason = window.prompt('请输入解除原因') ?? '';
-  await cancelAdminUserRestrictionApi(row.id, cancelReason);
-  message.success('用户限制已解除');
-  await loadData();
+
+/**
+ * 处理解除状态变化。
+ *
+ * :param isCancel: 是否已解除。
+ * :return: 无返回值。
+ */
+function handleCancelStatusChange(isCancel: boolean): void {
+  if (!isCancel) form.cancelReason = '';
 }
-async function handleDelete(row: AdminUserRestriction) {
-  if (!window.confirm('确认删除该用户限制？')) return;
-  await deleteAdminUserRestrictionApi(row.id);
-  message.success('用户限制已删除');
-  await loadData();
+
+/**
+ * 输入原因并解除用户限制。
+ *
+ * :param row: 用户限制数据。
+ * :return: 无返回值。
+ */
+function handleCancel(row: AdminUserRestriction): void {
+  showPromptDialog({
+    onConfirm: async (cancelReason) => {
+      await cancelAdminUserRestrictionApi(row.id, cancelReason);
+      message.success('用户限制已解除');
+      await loadData();
+    },
+    placeholder: '请输入解除原因',
+    positiveText: '确认解除',
+    title: '解除用户限制',
+  });
+}
+/**
+ * 确认并删除用户限制。
+ *
+ * :param row: 用户限制数据。
+ * :return: 无返回值。
+ */
+function handleDelete(row: AdminUserRestriction): void {
+  showDeleteConfirm('确认删除该用户限制？', async () => {
+    await deleteAdminUserRestrictionApi(row.id);
+    message.success('用户限制已删除');
+    await loadData();
+  });
 }
 function handlePageChange(page: number) {
   query.current = page;
@@ -232,19 +340,20 @@ function handlePageSizeChange(size: number) {
   query.current = 1;
   void loadData();
 }
-onMounted(loadData);
+onMounted(() => {
+  void Promise.all([loadUsers(), loadData()]);
+});
 </script>
 <template>
   <Page title="用户限制">
     <NCard :bordered="false">
       <div class="admin-filter-toolbar mb-4">
         <NSpace align="center" class="admin-filter-fields" wrap>
-          <NInput
+          <AdminUserSelect
             v-model:value="query.userId"
-            clearable
-            placeholder="用户 ID"
-            class="w-[180px]"
-            @keyup.enter="handleSearch"
+            :users="users"
+            placeholder="用户"
+            class="w-[220px]"
           /><NSelect
             v-model:value="query.restrictType"
             :options="restrictTypeOptions"
@@ -280,7 +389,7 @@ onMounted(loadData);
         :data="records"
         :loading="loading"
         :row-key="(row) => row.id"
-        :scroll-x="1160"
+        :scroll-x="1780"
       /><NSpace justify="end" class="mt-4">
         <NPagination
           :item-count="total"
@@ -305,10 +414,11 @@ onMounted(loadData);
         label-placement="left"
         label-width="100"
       >
-        <NFormItem label="用户 ID" path="userId">
-          <NInput
+        <NFormItem label="用户" path="userId">
+          <AdminUserSelect
             v-model:value="form.userId"
             :disabled="Boolean(editingId)"
+            :users="users"
           />
 </NFormItem><NFormItem label="限制类型" path="restrictType">
           <NSelect
@@ -318,17 +428,40 @@ onMounted(loadData);
 </NFormItem><NFormItem label="永久限制">
           <NSwitch v-model:value="form.isForever" />
 </NFormItem><NFormItem label="开始时间">
-          <NInput
-            v-model:value="form.startTime"
+          <NDatePicker
+            v-model:formatted-value="form.startTime"
+            :disabled="form.isForever"
+            clearable
             placeholder="YYYY-MM-DD HH:mm:ss"
+            type="datetime"
+            value-format="yyyy-MM-dd HH:mm:ss"
+            class="w-full"
           />
 </NFormItem><NFormItem label="结束时间">
-          <NInput
-            v-model:value="form.endTime"
+          <NDatePicker
+            v-model:formatted-value="form.endTime"
+            :disabled="form.isForever"
+            clearable
             placeholder="YYYY-MM-DD HH:mm:ss"
+            type="datetime"
+            value-format="yyyy-MM-dd HH:mm:ss"
+            class="w-full"
           />
 </NFormItem><NFormItem label="原因">
           <NInput v-model:value="form.reason" type="textarea" />
+        </NFormItem>
+        <NFormItem v-if="editingId" label="已解除">
+          <NSwitch
+            v-model:value="form.isCancel"
+            @update:value="handleCancelStatusChange"
+          />
+        </NFormItem>
+        <NFormItem v-if="editingId" label="解除原因">
+          <NInput
+            v-model:value="form.cancelReason"
+            :disabled="!form.isCancel"
+            type="textarea"
+          />
         </NFormItem>
 </NForm><template #footer>
         <NSpace justify="end">

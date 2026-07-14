@@ -33,6 +33,7 @@ import {
   getAdminConfigPageApi,
   updateAdminConfigApi,
 } from '#/api';
+import { showDeleteConfirm } from '#/utils/confirm';
 
 import { hasActionPermission } from '../../system/permission-actions';
 
@@ -105,7 +106,7 @@ const columns = computed<DataTableColumns<AdminConfig>>(() => [
     title: '状态',
     width: 100,
   },
-  { key: 'createTime', title: '创建时间', width: 170 },
+  { key: 'createTime', title: '创建时间', width: 200 },
   {
     fixed: 'right',
     key: 'actions',
@@ -195,13 +196,18 @@ async function handleSubmit() {
   await loadConfigs();
 }
 
-async function handleDelete(row: AdminConfig) {
-  if (!window.confirm(`确认删除“${row.name}”？`)) {
-    return;
-  }
-  await deleteAdminConfigApi(row.id);
-  message.success('配置已删除');
-  await loadConfigs();
+/**
+ * 确认并删除配置。
+ *
+ * :param row: 配置数据。
+ * :return: 无返回值。
+ */
+function handleDelete(row: AdminConfig): void {
+  showDeleteConfirm(`确认删除“${row.name}”？`, async () => {
+    await deleteAdminConfigApi(row.id);
+    message.success('配置已删除');
+    await loadConfigs();
+  });
 }
 
 function handlePageChange(page: number) {

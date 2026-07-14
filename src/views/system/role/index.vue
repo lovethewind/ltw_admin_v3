@@ -34,6 +34,7 @@ import {
   updateAdminRoleApi,
   updateAdminRoleMenusApi,
 } from '#/api';
+import { showDeleteConfirm } from '#/utils/confirm';
 
 import { hasActionPermission } from '../permission-actions';
 import {
@@ -195,13 +196,18 @@ async function handleSubmit() {
   await loadRoles();
 }
 
-async function handleDelete(row: AdminRole) {
-  if (!window.confirm(`确认删除“${row.name}”？`)) {
-    return;
-  }
-  await deleteAdminRoleApi(row.id);
-  message.success('角色已删除');
-  await loadRoles();
+/**
+ * 确认并删除角色。
+ *
+ * :param row: 角色数据。
+ * :return: 无返回值。
+ */
+function handleDelete(row: AdminRole): void {
+  showDeleteConfirm(`确认删除“${row.name}”？`, async () => {
+    await deleteAdminRoleApi(row.id);
+    message.success('角色已删除');
+    await loadRoles();
+  });
 }
 
 async function handleSaveAuth() {

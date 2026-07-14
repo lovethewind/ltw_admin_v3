@@ -31,6 +31,7 @@ import {
   getAdminCategoryListApi,
   updateAdminCategoryApi,
 } from '#/api';
+import { showDeleteConfirm } from '#/utils/confirm';
 
 import { hasActionPermission } from '../../system/permission-actions';
 
@@ -157,13 +158,18 @@ async function handleSubmit() {
   await loadCategories();
 }
 
-async function handleDelete(row: AdminCategory) {
-  if (!window.confirm(`确认删除“${row.name}”？`)) {
-    return;
-  }
-  await deleteAdminCategoryApi(row.id);
-  message.success('分类已删除');
-  await loadCategories();
+/**
+ * 确认并删除分类。
+ *
+ * :param row: 分类数据。
+ * :return: 无返回值。
+ */
+function handleDelete(row: AdminCategory): void {
+  showDeleteConfirm(`确认删除“${row.name}”？`, async () => {
+    await deleteAdminCategoryApi(row.id);
+    message.success('分类已删除');
+    await loadCategories();
+  });
 }
 
 onMounted(loadCategories);
