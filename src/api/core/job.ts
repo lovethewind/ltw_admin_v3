@@ -67,6 +67,11 @@ export async function updateAdminJobStatusApi(
   });
 }
 
+/** 立即执行一次定时任务。 */
+export async function executeAdminJobApi(jobId: SnowflakeId) {
+  return requestClient.post(`/job/${jobId}/execute`);
+}
+
 export async function deleteAdminJobApi(jobId: SnowflakeId) {
   return requestClient.delete(`/job/${jobId}`);
 }

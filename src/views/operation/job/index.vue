@@ -38,6 +38,7 @@ import {
 import {
   createAdminJobApi,
   deleteAdminJobApi,
+  executeAdminJobApi,
   getAdminJobApi,
   getAdminJobPageApi,
   getAdminUserApi,
@@ -45,7 +46,7 @@ import {
   updateAdminJobApi,
   updateAdminJobStatusApi,
 } from '#/api';
-import { showDeleteConfirm } from '#/utils/confirm';
+import { showConfirm, showDeleteConfirm } from '#/utils/confirm';
 
 import { hasActionPermission } from '../../system/permission-actions';
 import AdminUserDisplay from '../../system/user/user-display.vue';
@@ -66,6 +67,7 @@ const accessStore = useAccessStore();
 const loading = ref(false);
 const modalVisible = ref(false);
 const editingId = ref<AdminJob['id']>();
+const executingId = ref<AdminJob['id']>();
 const formRef = ref<FormInst | null>(null);
 const records = ref<AdminJob[]>([]);
 const users = ref<AdminUser[]>([]);
@@ -183,7 +185,7 @@ const columns = computed<DataTableColumns<AdminJob>>(() => [
     fixed: 'right',
     key: 'actions',
     title: '操作',
-    width: 230,
+    width: 300,
     render: (row) => {
       const actions: VNodeChild[] = [];
       if (canAccess('job:update'))
@@ -192,6 +194,19 @@ const columns = computed<DataTableColumns<AdminJob>>(() => [
             NButton,
             { size: 'small', onClick: () => openEdit(row) },
             { default: () => '编辑' },
+          ),
+        );
+      if (canAccess('job:update'))
+        actions.push(
+          h(
+            NButton,
+            {
+              loading: executingId.value === row.id,
+              size: 'small',
+              type: 'primary',
+              onClick: () => handleExecute(row),
+            },
+            { default: () => '执行' },
           ),
         );
       if (canAccess('job:status'))
@@ -373,6 +388,28 @@ async function handleStatus(row: AdminJob, status: number) {
   await updateAdminJobStatusApi(row.id, status);
   message.success('任务状态已更新');
   await loadData();
+}
+
+/**
+ * 确认并立即执行一次定时任务。
+ *
+ * :param row: 定时任务数据。
+ * :return: 无返回值。
+ */
+function handleExecute(row: AdminJob): void {
+  showConfirm(
+    `确认立即执行“${row.name}”？`,
+    async () => {
+      executingId.value = row.id;
+      try {
+        await executeAdminJobApi(row.id);
+        message.success('定时任务已提交执行');
+      } finally {
+        executingId.value = undefined;
+      }
+    },
+    { positiveText: '执行', title: '立即执行任务' },
+  );
 }
 /**
  * 确认并删除定时任务。

@@ -9,6 +9,11 @@ export interface DeleteConfirmOptions {
   title?: string;
 }
 
+export interface ConfirmDialogOptions {
+  positiveText?: string;
+  title?: string;
+}
+
 export interface PromptDialogOptions {
   content?: string;
   onConfirm: (value: string) => Promise<void> | void;
@@ -36,6 +41,29 @@ export function showDeleteConfirm(
     positiveButtonProps: { type: 'error' },
     positiveText: options.positiveText ?? '删除',
     title: options.title ?? '确认删除',
+  });
+}
+
+/**
+ * 显示统一的操作确认弹窗。
+ *
+ * :param content: 操作确认提示内容。
+ * :param onConfirm: 确认后的回调。
+ * :param options: 弹窗配置。
+ * :return: 无返回值。
+ */
+export function showConfirm(
+  content: string,
+  onConfirm: () => Promise<void> | void,
+  options: ConfirmDialogOptions = {},
+): void {
+  dialog.info({
+    content,
+    negativeText: '取消',
+    onPositiveClick: onConfirm,
+    positiveButtonProps: { type: 'primary' },
+    positiveText: options.positiveText ?? '确认',
+    title: options.title ?? '确认操作',
   });
 }
 
