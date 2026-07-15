@@ -16,6 +16,9 @@ export interface AdminArticle {
   isMarkdown: boolean;
   isOriginal: boolean;
   originalUrl: string;
+  hotScore: number;
+  recommendScore: number;
+  recommendWeight: number;
   status: number;
   tagList: SnowflakeId[];
   title: string;

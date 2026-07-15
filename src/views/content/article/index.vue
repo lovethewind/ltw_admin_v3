@@ -29,6 +29,7 @@ import {
   NForm,
   NFormItem,
   NInput,
+  NInputNumber,
   NModal,
   NPagination,
   NSelect,
@@ -80,6 +81,7 @@ type ArticleForm = Required<
     | 'isMarkdown'
     | 'isOriginal'
     | 'originalUrl'
+    | 'recommendWeight'
     | 'status'
     | 'tagList'
     | 'title'
@@ -118,6 +120,7 @@ const defaultForm: ArticleForm = {
   isMarkdown: false,
   isOriginal: true,
   originalUrl: '',
+  recommendWeight: 0,
   status: 1,
   tagList: [],
   title: '',
@@ -347,6 +350,12 @@ function openCreate() {
   modalVisible.value = true;
 }
 
+/**
+ * 打开文章编辑弹窗并回填文章数据。
+ *
+ * :param row: 当前文章数据。
+ * :return: 无返回值。
+ */
 async function openEdit(row: AdminArticle) {
   resetForm();
   const detail = await getAdminArticleApi(row.id);
@@ -358,6 +367,7 @@ async function openEdit(row: AdminArticle) {
     isMarkdown: detail.isMarkdown,
     isOriginal: detail.isOriginal,
     originalUrl: detail.originalUrl ?? '',
+    recommendWeight: detail.recommendWeight,
     status: detail.status,
     tagList: [...detail.tagList],
     title: detail.title,
@@ -550,6 +560,15 @@ onMounted(async () => {
                 <NSelect
                   v-model:value="form.status"
                   :options="articleStatusOptions"
+                />
+              </NFormItem>
+              <NFormItem label="推荐权重" path="recommendWeight">
+                <NInputNumber
+                  v-model:value="form.recommendWeight"
+                  :max="10000"
+                  :min="-10000"
+                  class="w-full"
+                  placeholder="数值越大，推荐排序越靠前"
                 />
               </NFormItem>
               <div class="grid grid-cols-2 gap-x-4">
