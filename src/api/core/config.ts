@@ -25,6 +25,30 @@ export type AdminConfigPayload = Omit<
   'createTime' | 'id' | 'updateTime'
 >;
 
+export interface SearchAnalysisConfig {
+  customWords: string[];
+  hotSearchStopWords: string[];
+  publishedAt?: null | string;
+  stopWords: string[];
+  version: number;
+}
+
+export interface SearchAnalysisState {
+  draft: SearchAnalysisConfig;
+  history: SearchAnalysisConfig[];
+  published: SearchAnalysisConfig;
+}
+
+export interface SearchAnalysisPreview {
+  filteredTokens: string[];
+  tokens: string[];
+}
+
+export interface SearchIndexRebuildResult {
+  documentCount: number;
+  indexName: string;
+}
+
 export async function getAdminConfigPageApi(params: {
   current: number;
   isActive?: boolean | null;
@@ -53,4 +77,42 @@ export async function updateAdminConfigApi(
 
 export async function deleteAdminConfigApi(configId: SnowflakeId) {
   return requestClient.delete(`/config/${configId}`);
+}
+
+export async function getSearchAnalysisApi() {
+  return requestClient.get<SearchAnalysisState>('/config/search-analysis');
+}
+
+export async function saveSearchAnalysisDraftApi(
+  data: Pick<
+    SearchAnalysisConfig,
+    'customWords' | 'hotSearchStopWords' | 'stopWords'
+  >,
+) {
+  return requestClient.put<SearchAnalysisState>(
+    '/config/search-analysis/draft',
+    data,
+  );
+}
+
+export async function previewSearchAnalysisApi(data: {
+  stopWords: string[];
+  text: string;
+}) {
+  return requestClient.post<SearchAnalysisPreview>(
+    '/config/search-analysis/preview',
+    data,
+  );
+}
+
+export async function publishSearchAnalysisApi() {
+  return requestClient.post<SearchAnalysisState>(
+    '/config/search-analysis/publish',
+  );
+}
+
+export async function rebuildArticleSearchIndexApi() {
+  return requestClient.post<SearchIndexRebuildResult>(
+    '/config/search-analysis/rebuild-index',
+  );
 }
